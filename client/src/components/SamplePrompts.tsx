@@ -24,7 +24,7 @@ const SamplePrompts = ({ onPromptClick }: SamplePromptsProps) => {
         {samplePrompts.map((prompt, index) => (
           <div
             key={index}
-            className={`bg-white rounded-lg p-3 shadow-sm border-l-4 ${borderColors[index % borderColors.length]} hover:shadow-md transition-shadow cursor-pointer`}
+            className={`bg-card rounded-lg p-3 shadow-md border-l-4 ${borderColors[index % borderColors.length]} hover:bg-accent/10 transition-all cursor-pointer`}
             onClick={() => onPromptClick(prompt)}
           >
             <p className="text-sm">"{prompt}"</p>
@@ -32,7 +32,7 @@ const SamplePrompts = ({ onPromptClick }: SamplePromptsProps) => {
         ))}
       </div>
       <div className="mt-3 text-center">
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-muted-foreground">
           Just tell the bot your child's name, age, and what kind of story you'd like about Solana concepts
         </p>
       </div>

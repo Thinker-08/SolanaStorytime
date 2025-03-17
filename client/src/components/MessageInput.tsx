@@ -46,7 +46,7 @@ const MessageInput = ({ onSendMessage, isDisabled = false }: MessageInputProps) 
           value={messageText}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          className="w-full resize-none border border-gray-300 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-primary"
+          className="w-full resize-none border border-border rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-primary/70 bg-card"
           placeholder="Type your story request here..."
           rows={2}
           disabled={isDisabled}

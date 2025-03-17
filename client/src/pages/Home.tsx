@@ -29,17 +29,17 @@ export default function Home() {
     setSessionId(newSessionId);
   }, []);
 
-  const { data: sessionData, isLoading: isLoadingSession } = useQuery({
+  const { data, isLoading: isLoadingSession } = useQuery({
     queryKey: [`/api/chat/session/${sessionId}`],
     enabled: !!sessionId,
     refetchOnWindowFocus: false,
   });
 
   useEffect(() => {
-    if (sessionData) {
-      setMessages(sessionData.messages);
+    if (data && 'messages' in data && Array.isArray(data.messages)) {
+      setMessages(data.messages);
     }
-  }, [sessionData]);
+  }, [data]);
 
   const storyMutation = useMutation({
     mutationFn: async (message: string) => {

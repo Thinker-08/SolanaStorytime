@@ -88,22 +88,22 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col max-w-4xl mx-auto p-4">
+    <div className="min-h-screen flex flex-col max-w-4xl mx-auto p-4 bg-background">
       {/* Header */}
       <header className="mb-6 text-center">
         <div className="flex items-center justify-center mb-2">
           <svg 
-            className="w-12 h-12 mr-3 text-primary" 
+            className="w-12 h-12 mr-3 text-primary drop-shadow-xl" 
             viewBox="0 0 24 24" 
             fill="currentColor"
           >
             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
           </svg>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary via-purple-500 to-secondary bg-clip-text text-transparent">
             SolanaStories
           </h1>
         </div>
-        <p className="text-md text-gray-600">Magical blockchain stories for curious minds</p>
+        <p className="text-md text-muted-foreground">Magical blockchain stories for curious minds</p>
       </header>
 
       {/* Sample Prompts */}
@@ -122,7 +122,7 @@ export default function Home() {
       />
 
       {/* Footer */}
-      <footer className="mt-6 text-center text-sm text-gray-500">
+      <footer className="mt-6 text-center text-sm text-muted-foreground">
         <p>© {new Date().getFullYear()} SolanaStories • Educational stories about blockchain for children</p>
       </footer>
     </div>

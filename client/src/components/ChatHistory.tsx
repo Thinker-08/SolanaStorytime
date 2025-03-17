@@ -29,7 +29,7 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
   return (
     <ScrollArea 
       ref={scrollAreaRef}
-      className="flex-grow mb-6 bg-white rounded-xl shadow-sm p-2 overflow-y-auto"
+      className="flex-grow mb-6 bg-card rounded-xl shadow-md border border-border p-2 overflow-y-auto"
       style={{ maxHeight: "60vh", minHeight: "300px" }}
     >
       <div className="space-y-4 p-2">

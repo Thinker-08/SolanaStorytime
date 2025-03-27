@@ -98,3 +98,28 @@
     opacity: 0.8; 
   }
 }
+
+/* Make text-to-speech button always visible on mobile */
+@media (max-width: 640px) {
+  .group .opacity-0.group-hover\:opacity-100 {
+    opacity: 1 !important;
+  }
+}
+
+/* Add a pulsing effect for the speaking button */
+@keyframes pulse-speak {
+  0% {
+    box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(124, 58, 237, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(124, 58, 237, 0);
+  }
+}
+
+.speaking-active {
+  animation: pulse-speak 2s infinite;
+  background-color: rgba(124, 58, 237, 0.2) !important;
+}

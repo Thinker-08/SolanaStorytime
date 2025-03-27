@@ -32,15 +32,50 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
   // State to track if voices have loaded
   const [voicesLoaded, setVoicesLoaded] = useState(false);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [audioSupported, setAudioSupported] = useState<boolean>(false);
   
   // Initialize speech synthesis
   useEffect(() => {
+    // Check if speech synthesis is supported
+    if (!window.speechSynthesis) {
+      console.error("CRITICAL: Speech synthesis not supported in this browser");
+      return;
+    }
+    
+    // Test audio with a simple utterance
+    const testAudio = () => {
+      try {
+        // Create a short test utterance that won't be noticed by users
+        const testUtterance = new SpeechSynthesisUtterance("test");
+        testUtterance.volume = 0; // Mute it
+        testUtterance.onend = () => {
+          console.log("🎉 Audio test successful - speech synthesis appears to be working");
+          setAudioSupported(true);
+        };
+        testUtterance.onerror = (e) => {
+          console.error("❌ Audio test failed - speech synthesis error:", e);
+          setAudioSupported(false);
+        };
+        
+        // Speak the test utterance
+        window.speechSynthesis.speak(testUtterance);
+      } catch (error) {
+        console.error("❌ Could not test audio:", error);
+        setAudioSupported(false);
+      }
+    };
+    
     // Function to handle voices changed event
     const handleVoicesChanged = () => {
       const voices = window.speechSynthesis.getVoices();
       console.log("Voices loaded:", voices.length);
       setAvailableVoices(voices);
       setVoicesLoaded(voices.length > 0);
+      
+      // Test audio after voices load
+      if (voices.length > 0) {
+        testAudio();
+      }
     };
     
     // Try to force voices to load
@@ -52,6 +87,9 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
       console.log("Voices already loaded:", voices.length);
       setAvailableVoices(voices);
       setVoicesLoaded(true);
+      
+      // Test audio immediately if voices are already loaded
+      testAudio();
     }
     
     // Add event listener for voices changed
@@ -64,6 +102,9 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
         console.log("Delayed voices loaded:", delayedVoices.length);
         setAvailableVoices(delayedVoices);
         setVoicesLoaded(true);
+        
+        // Test audio after delayed voice loading
+        testAudio();
       }
     }, 1000);
     
@@ -71,11 +112,26 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
     return () => {
       window.speechSynthesis.removeEventListener("voiceschanged", handleVoicesChanged);
     };
-  }, []);
+  }, [voicesLoaded]);
 
   // Text-to-speech functionality
   const speak = (text: string, index: number) => {
     console.log("Starting text-to-speech...");
+    
+    // Check if speech synthesis is available
+    if (!window.speechSynthesis) {
+      console.error("Speech synthesis not supported in this browser");
+      alert("Sorry, text-to-speech is not supported in your browser.");
+      return;
+    }
+    
+    // If we know audio isn't supported (from our earlier test), notify the user
+    if (!audioSupported && voicesLoaded) {
+      console.warn("Audio was previously detected as unsupported in this browser");
+      alert("Speech synthesis appears to be blocked or unsupported in your browser.\n\nTry checking your browser settings to ensure audio is allowed on this site.");
+      return;
+    }
+    
     // Stop any current speech
     window.speechSynthesis.cancel();
     
@@ -86,67 +142,150 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
     }
     
     try {
-      // Create a new utterance
-      const utterance = new SpeechSynthesisUtterance(text);
-      
-      // Use our cached voices if available
-      const voices = availableVoices.length > 0 
-        ? availableVoices 
-        : window.speechSynthesis.getVoices();
+      // Try a quick audio test before continuing
+      if (!audioSupported) {
+        console.log("Attempting to verify audio support before speaking...");
         
-      console.log("Available voices:", voices.length);
-      
-      // First try to find a good English voice
-      let preferredVoice = voices.find(
-        voice => 
-          (voice.name.includes("female") || 
-           voice.name.includes("girl") || 
-           voice.name.includes("Female") ||
-           voice.name.toLowerCase().includes("samantha")) && 
-          voice.lang.includes("en")
-      );
-      
-      // If no preferred voice found, try any English voice
-      if (!preferredVoice) {
-        preferredVoice = voices.find(voice => voice.lang.includes("en"));
+        // We'll still try to speak anyway, but log this for troubleshooting
+        const silentTest = new SpeechSynthesisUtterance(".");
+        silentTest.volume = 0;
+        silentTest.onend = () => console.log("Silent audio check passed");
+        silentTest.onerror = () => console.warn("Silent audio check failed");
+        window.speechSynthesis.speak(silentTest);
       }
       
-      // If still no voice, use the first voice
-      if (!preferredVoice && voices.length > 0) {
-        preferredVoice = voices[0];
-      }
+      // For Replit environment and browsers that have issues with long text
+      // Break up the text into smaller chunks to improve reliability
+      const textChunks = splitTextIntoChunks(text, 200); // Split into chunks of 200 characters
+      console.log(`Text split into ${textChunks.length} chunks`);
       
-      if (preferredVoice) {
-        console.log("Using voice:", preferredVoice.name);
-        utterance.voice = preferredVoice;
-      } else {
-        console.log("Using default voice");
-      }
-      
-      // Set moderate rate and pitch for children's stories
-      utterance.rate = 0.9;
-      utterance.pitch = 1.1;
-      
-      // Handle end of speech
-      utterance.onend = () => {
-        console.log("Speech ended");
-        setSpeakingIndex(null);
-      };
-      
-      // Handle errors
-      utterance.onerror = (event) => {
-        console.error("Speech synthesis error:", event);
-        setSpeakingIndex(null);
-      };
-      
-      // Start speaking
-      window.speechSynthesis.speak(utterance);
-      console.log("Started speaking");
+      // Set the speaking state now to provide immediate feedback to the user
       setSpeakingIndex(index);
+      
+      // Process the first chunk immediately
+      processTextChunk(textChunks, 0, index);
     } catch (error) {
       console.error("Error in speech synthesis:", error);
       setSpeakingIndex(null);
+      alert("Sorry, there was an error with text-to-speech. Please try again.");
     }
+  };
+  
+  // Function to split text into smaller chunks for better TTS performance
+  const splitTextIntoChunks = (text: string, chunkSize: number): string[] => {
+    const chunks: string[] = [];
+    
+    // Split by sentences first
+    const sentences = text.split(/(?<=[.!?])\s+/);
+    let currentChunk = "";
+    
+    for (const sentence of sentences) {
+      if ((currentChunk + sentence).length > chunkSize) {
+        // If adding this sentence would exceed chunk size, save current chunk and start a new one
+        if (currentChunk) {
+          chunks.push(currentChunk);
+          currentChunk = "";
+        }
+        
+        // If sentence itself is longer than chunk size, split it further
+        if (sentence.length > chunkSize) {
+          const words = sentence.split(" ");
+          let tempChunk = "";
+          
+          for (const word of words) {
+            if ((tempChunk + " " + word).length > chunkSize) {
+              chunks.push(tempChunk);
+              tempChunk = word;
+            } else {
+              tempChunk += (tempChunk ? " " : "") + word;
+            }
+          }
+          
+          if (tempChunk) {
+            currentChunk = tempChunk;
+          }
+        } else {
+          currentChunk = sentence;
+        }
+      } else {
+        currentChunk += (currentChunk ? " " : "") + sentence;
+      }
+    }
+    
+    // Add any remaining text
+    if (currentChunk) {
+      chunks.push(currentChunk);
+    }
+    
+    return chunks;
+  };
+  
+  // Process text chunks one by one
+  const processTextChunk = (chunks: string[], index: number, messageIndex: number) => {
+    // Stop if we've reached the end or speaking has been stopped
+    if (index >= chunks.length || speakingIndex !== messageIndex) {
+      if (index >= chunks.length) {
+        console.log("Finished speaking all chunks");
+        setSpeakingIndex(null);
+      }
+      return;
+    }
+    
+    const chunk = chunks[index];
+    const utterance = new SpeechSynthesisUtterance(chunk);
+    
+    // Use our cached voices if available
+    const voices = availableVoices.length > 0 
+      ? availableVoices 
+      : window.speechSynthesis.getVoices();
+      
+    // First try to find a good English voice
+    let preferredVoice = voices.find(
+      voice => 
+        (voice.name.includes("female") || 
+         voice.name.includes("girl") || 
+         voice.name.includes("Female") ||
+         voice.name.toLowerCase().includes("samantha")) && 
+        voice.lang.includes("en")
+    );
+    
+    // If no preferred voice found, try any English voice
+    if (!preferredVoice) {
+      preferredVoice = voices.find(voice => voice.lang.includes("en"));
+    }
+    
+    // If still no voice, use the first voice or default
+    if (preferredVoice) {
+      utterance.voice = preferredVoice;
+    }
+    
+    // Set moderate rate and pitch for children's stories
+    utterance.rate = 0.9;
+    utterance.pitch = 1.1;
+    
+    // When this chunk ends, process the next one
+    utterance.onend = () => {
+      processTextChunk(chunks, index + 1, messageIndex);
+    };
+    
+    // Handle errors
+    utterance.onerror = (event) => {
+      console.error("Speech synthesis error for chunk:", event);
+      // Try to continue with next chunk despite error
+      processTextChunk(chunks, index + 1, messageIndex);
+    };
+    
+    // Ensure browser compatibility with a small delay
+    setTimeout(() => {
+      try {
+        window.speechSynthesis.speak(utterance);
+        console.log(`Speaking chunk ${index + 1} of ${chunks.length}`);
+      } catch (error) {
+        console.error("Error starting speech:", error);
+        // Try the next chunk anyway
+        processTextChunk(chunks, index + 1, messageIndex);
+      }
+    }, 50);
   };
 
   // Stop speech when component unmounts

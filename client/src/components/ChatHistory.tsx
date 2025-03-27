@@ -31,21 +31,41 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
 
   // State to track if voices have loaded
   const [voicesLoaded, setVoicesLoaded] = useState(false);
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   
   // Initialize speech synthesis
   useEffect(() => {
     // Function to handle voices changed event
     const handleVoicesChanged = () => {
-      setVoicesLoaded(true);
+      const voices = window.speechSynthesis.getVoices();
+      console.log("Voices loaded:", voices.length);
+      setAvailableVoices(voices);
+      setVoicesLoaded(voices.length > 0);
     };
     
+    // Try to force voices to load
+    window.speechSynthesis.cancel();
+    
     // Check if voices are already loaded
-    if (window.speechSynthesis.getVoices().length > 0) {
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+      console.log("Voices already loaded:", voices.length);
+      setAvailableVoices(voices);
       setVoicesLoaded(true);
     }
     
     // Add event listener for voices changed
     window.speechSynthesis.addEventListener("voiceschanged", handleVoicesChanged);
+    
+    // Try additional method to load voices in some browsers
+    setTimeout(() => {
+      const delayedVoices = window.speechSynthesis.getVoices();
+      if (delayedVoices.length > 0 && !voicesLoaded) {
+        console.log("Delayed voices loaded:", delayedVoices.length);
+        setAvailableVoices(delayedVoices);
+        setVoicesLoaded(true);
+      }
+    }, 1000);
     
     // Cleanup
     return () => {
@@ -55,49 +75,78 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
 
   // Text-to-speech functionality
   const speak = (text: string, index: number) => {
+    console.log("Starting text-to-speech...");
     // Stop any current speech
     window.speechSynthesis.cancel();
     
     if (speakingIndex === index) {
+      console.log("Stopping speech");
       setSpeakingIndex(null);
       return;
     }
     
-    // Create a new utterance
-    const utterance = new SpeechSynthesisUtterance(text);
-    
-    // Set a child-friendly voice if available
-    const voices = window.speechSynthesis.getVoices();
-    const preferredVoice = voices.find(
-      voice => 
-        (voice.name.includes("female") || 
-         voice.name.includes("girl") || 
-         voice.name.includes("Female") ||
-         voice.name.toLowerCase().includes("samantha")) && 
-        voice.lang.includes("en")
-    );
-    
-    if (preferredVoice) {
-      utterance.voice = preferredVoice;
+    try {
+      // Create a new utterance
+      const utterance = new SpeechSynthesisUtterance(text);
+      
+      // Use our cached voices if available
+      const voices = availableVoices.length > 0 
+        ? availableVoices 
+        : window.speechSynthesis.getVoices();
+        
+      console.log("Available voices:", voices.length);
+      
+      // First try to find a good English voice
+      let preferredVoice = voices.find(
+        voice => 
+          (voice.name.includes("female") || 
+           voice.name.includes("girl") || 
+           voice.name.includes("Female") ||
+           voice.name.toLowerCase().includes("samantha")) && 
+          voice.lang.includes("en")
+      );
+      
+      // If no preferred voice found, try any English voice
+      if (!preferredVoice) {
+        preferredVoice = voices.find(voice => voice.lang.includes("en"));
+      }
+      
+      // If still no voice, use the first voice
+      if (!preferredVoice && voices.length > 0) {
+        preferredVoice = voices[0];
+      }
+      
+      if (preferredVoice) {
+        console.log("Using voice:", preferredVoice.name);
+        utterance.voice = preferredVoice;
+      } else {
+        console.log("Using default voice");
+      }
+      
+      // Set moderate rate and pitch for children's stories
+      utterance.rate = 0.9;
+      utterance.pitch = 1.1;
+      
+      // Handle end of speech
+      utterance.onend = () => {
+        console.log("Speech ended");
+        setSpeakingIndex(null);
+      };
+      
+      // Handle errors
+      utterance.onerror = (event) => {
+        console.error("Speech synthesis error:", event);
+        setSpeakingIndex(null);
+      };
+      
+      // Start speaking
+      window.speechSynthesis.speak(utterance);
+      console.log("Started speaking");
+      setSpeakingIndex(index);
+    } catch (error) {
+      console.error("Error in speech synthesis:", error);
+      setSpeakingIndex(null);
     }
-    
-    // Set moderate rate and pitch for children's stories
-    utterance.rate = 0.9;
-    utterance.pitch = 1.1;
-    
-    // Handle end of speech
-    utterance.onend = () => {
-      setSpeakingIndex(null);
-    };
-    
-    // Handle errors
-    utterance.onerror = () => {
-      setSpeakingIndex(null);
-    };
-    
-    // Start speaking
-    window.speechSynthesis.speak(utterance);
-    setSpeakingIndex(index);
   };
 
   // Stop speech when component unmounts
@@ -148,12 +197,12 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
               } p-3 max-w-[85%] relative group`}
             >
               {message.role === "assistant" && (
-                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute top-2 right-2 opacity-100 transition-opacity">
                   <Button
                     onClick={() => speak(message.content, index)}
                     variant="outline"
                     size="sm"
-                    className={`h-8 w-8 p-0 rounded-full bg-primary bg-opacity-10 hover:bg-opacity-20 border-primary border-opacity-20 ${speakingIndex === index ? 'speaking-active' : ''}`}
+                    className={`h-8 w-8 p-0 rounded-full bg-primary bg-opacity-20 hover:bg-opacity-30 border-primary border-opacity-20 ${speakingIndex === index ? 'speaking-active' : ''}`}
                     title={speakingIndex === index ? "Stop narration" : "Narrate story"}
                   >
                     {speakingIndex === index ? (

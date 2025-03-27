@@ -121,5 +121,7 @@
 
 .speaking-active {
   animation: pulse-speak 2s infinite;
-  background-color: rgba(124, 58, 237, 0.2) !important;
+  background-color: rgba(124, 58, 237, 0.8) !important;
+  color: white !important;
+  font-weight: bold;
 }

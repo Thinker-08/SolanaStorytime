@@ -196,19 +196,27 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
                   : "mr-3 bg-secondary bg-opacity-10 rounded-lg rounded-tr-none"
               } p-3 max-w-[85%] relative group`}
             >
+              {/* No conditional rendering here - removed */}
+              
               {message.role === "assistant" && (
-                <div className="absolute top-2 right-2 opacity-100 transition-opacity">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-sm font-bold text-primary">Story from SolanaStories</h3>
                   <Button
                     onClick={() => speak(message.content, index)}
                     variant="outline"
                     size="sm"
-                    className={`h-8 w-8 p-0 rounded-full bg-primary bg-opacity-20 hover:bg-opacity-30 border-primary border-opacity-20 ${speakingIndex === index ? 'speaking-active' : ''}`}
-                    title={speakingIndex === index ? "Stop narration" : "Narrate story"}
+                    className={`h-8 px-3 py-1 rounded-md ${speakingIndex === index ? 'speaking-active' : 'bg-primary text-white hover:bg-opacity-90'} border-none shadow-md`}
                   >
                     {speakingIndex === index ? (
-                      <VolumeX className="h-4 w-4 text-primary" />
+                      <div className="flex items-center">
+                        <VolumeX className="h-4 w-4 mr-1" />
+                        <span>Stop</span>
+                      </div>
                     ) : (
-                      <Volume2 className="h-4 w-4 text-primary" />
+                      <div className="flex items-center">
+                        <Volume2 className="h-4 w-4 mr-1" />
+                        <span>Listen</span>
+                      </div>
                     )}
                   </Button>
                 </div>

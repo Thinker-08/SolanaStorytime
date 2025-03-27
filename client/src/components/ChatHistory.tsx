@@ -4,6 +4,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { FaRobot, FaUser } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
 import { Volume2, VolumeX } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface Message {
   role: "user" | "assistant";
@@ -18,6 +19,7 @@ interface ChatHistoryProps {
 const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [speakingIndex, setSpeakingIndex] = useState<number | null>(null);
+  const { toast } = useToast();
   
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -33,21 +35,63 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
   const [voicesLoaded, setVoicesLoaded] = useState(false);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [audioSupported, setAudioSupported] = useState<boolean>(false);
+  const audioContext = useRef<AudioContext | null>(null);
   
   // Initialize speech synthesis
   useEffect(() => {
     // Check if speech synthesis is supported
-    if (!window.speechSynthesis) {
+    if (typeof window === 'undefined' || !window.speechSynthesis) {
       console.error("CRITICAL: Speech synthesis not supported in this browser");
       return;
     }
     
+    // Create AudioContext for unlocking audio on iOS/Safari
+    try {
+      // @ts-ignore - AudioContext might not be available in all browsers
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (AudioContext) {
+        audioContext.current = new AudioContext();
+      }
+    } catch (e) {
+      console.warn("AudioContext not supported:", e);
+    }
+    
+    // Helper function to unlock audio on iOS/Safari
+    const unlockAudio = () => {
+      if (audioContext.current && audioContext.current.state === 'suspended') {
+        audioContext.current.resume().then(() => {
+          console.log("AudioContext resumed successfully");
+        }).catch(err => {
+          console.error("Failed to resume AudioContext:", err);
+        });
+      }
+      
+      // Create and play a silent sound to unlock the audio
+      if (window.speechSynthesis) {
+        const unlockUtterance = new SpeechSynthesisUtterance('');
+        unlockUtterance.volume = 0.01; // Nearly silent but not completely
+        window.speechSynthesis.speak(unlockUtterance);
+      }
+      
+      // Remove the listeners after first interaction
+      document.body.removeEventListener('click', unlockAudio);
+      document.body.removeEventListener('touchstart', unlockAudio);
+    };
+    
+    // Add event listeners to unlock audio on first user interaction
+    document.body.addEventListener('click', unlockAudio);
+    document.body.addEventListener('touchstart', unlockAudio);
+    
     // Test audio with a simple utterance
     const testAudio = () => {
       try {
+        // Ensure speech synthesis is not busy
+        window.speechSynthesis.cancel();
+        
         // Create a short test utterance that won't be noticed by users
         const testUtterance = new SpeechSynthesisUtterance("test");
-        testUtterance.volume = 0; // Mute it
+        testUtterance.volume = 0.1; // Very quiet but not silent (silent can fail on some browsers)
+        testUtterance.rate = 1.0;
         testUtterance.onend = () => {
           console.log("🎉 Audio test successful - speech synthesis appears to be working");
           setAudioSupported(true);
@@ -78,7 +122,7 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
       }
     };
     
-    // Try to force voices to load
+    // Force cleanup of any ongoing speech
     window.speechSynthesis.cancel();
     
     // Check if voices are already loaded
@@ -111,30 +155,38 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
     // Cleanup
     return () => {
       window.speechSynthesis.removeEventListener("voiceschanged", handleVoicesChanged);
+      document.body.removeEventListener('click', unlockAudio);
+      document.body.removeEventListener('touchstart', unlockAudio);
+      window.speechSynthesis.cancel();
     };
   }, [voicesLoaded]);
 
   // Text-to-speech functionality
   const speak = (text: string, index: number) => {
+    // First attempt to unlock audio if needed
+    if (audioContext.current && audioContext.current.state === 'suspended') {
+      audioContext.current.resume().catch(err => {
+        console.error("Failed to resume AudioContext:", err);
+      });
+    }
+    
     console.log("Starting text-to-speech...");
     
     // Check if speech synthesis is available
-    if (!window.speechSynthesis) {
+    if (typeof window === 'undefined' || !window.speechSynthesis) {
       console.error("Speech synthesis not supported in this browser");
-      alert("Sorry, text-to-speech is not supported in your browser.");
-      return;
-    }
-    
-    // If we know audio isn't supported (from our earlier test), notify the user
-    if (!audioSupported && voicesLoaded) {
-      console.warn("Audio was previously detected as unsupported in this browser");
-      alert("Speech synthesis appears to be blocked or unsupported in your browser.\n\nTry checking your browser settings to ensure audio is allowed on this site.");
+      toast({
+        title: "Speech not supported",
+        description: "Text-to-speech is not supported in your browser.",
+        variant: "destructive"
+      });
       return;
     }
     
     // Stop any current speech
     window.speechSynthesis.cancel();
     
+    // If already speaking this message, stop it
     if (speakingIndex === index) {
       console.log("Stopping speech");
       setSpeakingIndex(null);
@@ -142,32 +194,30 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
     }
     
     try {
-      // Try a quick audio test before continuing
-      if (!audioSupported) {
-        console.log("Attempting to verify audio support before speaking...");
-        
-        // We'll still try to speak anyway, but log this for troubleshooting
-        const silentTest = new SpeechSynthesisUtterance(".");
-        silentTest.volume = 0;
-        silentTest.onend = () => console.log("Silent audio check passed");
-        silentTest.onerror = () => console.warn("Silent audio check failed");
-        window.speechSynthesis.speak(silentTest);
-      }
-      
       // For Replit environment and browsers that have issues with long text
       // Break up the text into smaller chunks to improve reliability
-      const textChunks = splitTextIntoChunks(text, 200); // Split into chunks of 200 characters
+      const textChunks = splitTextIntoChunks(text, 150); // Use smaller chunks for better reliability
       console.log(`Text split into ${textChunks.length} chunks`);
       
       // Set the speaking state now to provide immediate feedback to the user
       setSpeakingIndex(index);
+      
+      // Show a toast notification to indicate that speech is starting
+      toast({
+        title: "Story narration starting",
+        description: "The story will be read aloud now. Click 'Stop' to end narration.",
+      });
       
       // Process the first chunk immediately
       processTextChunk(textChunks, 0, index);
     } catch (error) {
       console.error("Error in speech synthesis:", error);
       setSpeakingIndex(null);
-      alert("Sorry, there was an error with text-to-speech. Please try again.");
+      toast({
+        title: "Speech error",
+        description: "There was an error starting the narration. Please try again.",
+        variant: "destructive"
+      });
     }
   };
   
@@ -175,8 +225,14 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
   const splitTextIntoChunks = (text: string, chunkSize: number): string[] => {
     const chunks: string[] = [];
     
-    // Split by sentences first
-    const sentences = text.split(/(?<=[.!?])\s+/);
+    // Remove any special characters or markdown that might confuse speech synthesis
+    const cleanedText = text
+      .replace(/\*\*/g, '')  // Remove bold markdown
+      .replace(/\n---\n/g, ' ') // Remove horizontal rules
+      .replace(/#{1,6}\s/g, '') // Remove markdown headers
+      
+    // Split by sentences first for more natural pauses
+    const sentences = cleanedText.split(/(?<=[.!?])\s+/);
     let currentChunk = "";
     
     for (const sentence of sentences) {
@@ -234,6 +290,11 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
     const chunk = chunks[index];
     const utterance = new SpeechSynthesisUtterance(chunk);
     
+    // Important for mobile Safari: set these properties before setting voice
+    utterance.volume = 1.0;  // Full volume
+    utterance.rate = 0.9;    // Slightly slower
+    utterance.pitch = 1.1;   // Slightly higher pitch
+    
     // Use our cached voices if available
     const voices = availableVoices.length > 0 
       ? availableVoices 
@@ -254,30 +315,38 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
       preferredVoice = voices.find(voice => voice.lang.includes("en"));
     }
     
-    // If still no voice, use the first voice or default
+    // If still no voice, use the first voice available
     if (preferredVoice) {
       utterance.voice = preferredVoice;
+    } else if (voices.length > 0) {
+      utterance.voice = voices[0];
     }
-    
-    // Set moderate rate and pitch for children's stories
-    utterance.rate = 0.9;
-    utterance.pitch = 1.1;
     
     // When this chunk ends, process the next one
     utterance.onend = () => {
-      processTextChunk(chunks, index + 1, messageIndex);
+      // Add a small delay between chunks for more natural pauses
+      setTimeout(() => {
+        processTextChunk(chunks, index + 1, messageIndex);
+      }, 300);
     };
     
     // Handle errors
     utterance.onerror = (event) => {
       console.error("Speech synthesis error for chunk:", event);
       // Try to continue with next chunk despite error
-      processTextChunk(chunks, index + 1, messageIndex);
+      setTimeout(() => {
+        processTextChunk(chunks, index + 1, messageIndex);
+      }, 500);
     };
     
     // Ensure browser compatibility with a small delay
     setTimeout(() => {
       try {
+        // Chrome/Firefox sometimes need this to be called again
+        if (audioContext.current && audioContext.current.state === 'suspended') {
+          audioContext.current.resume();
+        }
+        
         window.speechSynthesis.speak(utterance);
         console.log(`Speaking chunk ${index + 1} of ${chunks.length}`);
       } catch (error) {
@@ -285,15 +354,26 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
         // Try the next chunk anyway
         processTextChunk(chunks, index + 1, messageIndex);
       }
-    }, 50);
+    }, 100);
   };
 
-  // Stop speech when component unmounts
+  // Reset speech synthesis on Chrome bug (stops after ~15 seconds)
   useEffect(() => {
+    if (!window.speechSynthesis) return;
+    
+    // Chrome bug fix: speech stops after about 15 seconds
+    const intervalId = setInterval(() => {
+      if (speakingIndex !== null) {
+        window.speechSynthesis.pause();
+        window.speechSynthesis.resume();
+      }
+    }, 10000);
+    
     return () => {
+      clearInterval(intervalId);
       window.speechSynthesis.cancel();
     };
-  }, []);
+  }, [speakingIndex]);
 
   return (
     <ScrollArea 

@@ -107,7 +107,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Text-to-Speech API endpoint - returns the text to be spoken by the client
+  // Text-to-Speech API endpoint - actual audio generation
   app.post("/api/text-to-speech/speak", async (req: Request, res: Response) => {
     try {
       // Validate request body
@@ -117,18 +117,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Only process a limited amount of text
       const limitedText = text.substring(0, 5000); // Limit very long texts
       
-      // Return JSON with instructions for the client to use native speech synthesis
-      return res.json({
-        success: true,
-        message: "Use the browser's speech synthesis API",
-        text: limitedText,
-        // Add these optional parameters to help the client with speech settings
-        speechSettings: {
-          rate: 0.9,    // Slightly slower than default
-          pitch: 1.1,   // Slightly higher pitch (good for children's stories)
-          volume: 1.0,  // Full volume
+      // Check for browser fallback mode parameter
+      const useBrowserFallback = req.query.fallback === 'true';
+      
+      if (useBrowserFallback) {
+        // Return JSON with instructions for the client to use native speech synthesis
+        return res.json({
+          success: true,
+          message: "Use the browser's speech synthesis API",
+          text: limitedText,
+          speechSettings: {
+            rate: 0.9,    // Slightly slower than default
+            pitch: 1.1,   // Slightly higher pitch (good for children's stories)
+            volume: 1.0,  // Full volume
+          }
+        });
+      }
+      
+      // Actually generate speech using espeak
+      const { exec } = require('child_process');
+      const fs = require('fs');
+      const path = require('path');
+      const os = require('os');
+      const { v4: uuidv4 } = require('uuid');
+      
+      // Create temp file names
+      const tempDir = os.tmpdir();
+      const tempTextFile = path.join(tempDir, `tts-text-${uuidv4()}.txt`);
+      const tempWavFile = path.join(tempDir, `tts-audio-${uuidv4()}.wav`);
+      
+      // Write text to a temporary file to avoid command line issues with quotes, etc.
+      fs.writeFileSync(tempTextFile, limitedText);
+      
+      // Generate speech with espeak
+      const command = `espeak -v en-us+f3 -s 130 -p 50 -a 200 -w ${tempWavFile} -f ${tempTextFile}`;
+      
+      // Run the command and handle the response
+      exec(command, (error: any) => {
+        if (error) {
+          console.error("Error generating speech:", error);
+          // Delete temp files
+          try {
+            fs.unlinkSync(tempTextFile);
+          } catch (e) {
+            console.error("Failed to delete temp text file:", e);
+          }
+          
+          // Return fallback JSON if espeak fails
+          return res.json({
+            success: false,
+            message: "Server-side speech generation failed, use browser fallback",
+            text: limitedText,
+            speechSettings: {
+              rate: 0.9,
+              pitch: 1.1,
+              volume: 1.0,
+            }
+          });
         }
+        
+        // Read audio file
+        fs.readFile(tempWavFile, (err: any, data: Buffer) => {
+          // Delete the temp files regardless of success
+          try {
+            fs.unlinkSync(tempTextFile);
+            fs.unlinkSync(tempWavFile);
+          } catch (e) {
+            console.error("Failed to delete temp files:", e);
+          }
+          
+          if (err) {
+            console.error("Error reading audio file:", err);
+            return res.json({
+              success: false,
+              message: "Failed to read audio file, use browser fallback",
+              text: limitedText,
+              speechSettings: {
+                rate: 0.9,
+                pitch: 1.1,
+                volume: 1.0,
+              }
+            });
+          }
+          
+          // Set response headers for audio
+          res.setHeader('Content-Type', 'audio/wav');
+          res.setHeader('Content-Length', data.length);
+          res.setHeader('Cache-Control', 'no-cache');
+          
+          // Return the audio data
+          return res.send(data);
+        });
       });
+      
+      // End of server-side generation
     } catch (error) {
       console.error("Error in text-to-speech API:", error);
       

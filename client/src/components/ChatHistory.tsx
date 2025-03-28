@@ -189,6 +189,9 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
     window.speechSynthesis.speak(utterance);
   };
 
+  // Audio element for playing server-generated speech
+  const [audioElement] = useState<HTMLAudioElement>(new Audio());
+  
   // Main function to start or stop speech synthesis
   const speak = (text: string, index: number) => {
     console.log("Text-to-speech requested");
@@ -196,7 +199,9 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
     // If already speaking this message, stop it
     if (speakingIndex === index) {
       console.log("Stopping speech");
-      window.speechSynthesis.cancel();
+      window.speechSynthesis?.cancel(); // Stop browser speech if any
+      audioElement.pause(); // Stop audio playback if any
+      audioElement.currentTime = 0;
       setSpeakingIndex(null);
       return;
     }
@@ -217,95 +222,177 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
         description: "The story will be read aloud now. Click 'Stop' to end narration.",
       });
       
-      // Cancel any ongoing speech
-      window.speechSynthesis.cancel();
+      // Add audio element event listeners
+      const setupAudioElement = () => {
+        // Remove any existing listeners to prevent duplicates
+        audioElement.onended = null;
+        audioElement.onerror = null;
+        
+        // Add new listeners
+        audioElement.onended = () => {
+          console.log("Audio playback ended");
+          setSpeakingIndex(null);
+        };
+        
+        audioElement.onerror = (e) => {
+          console.error("Audio element error:", e);
+          setSpeakingIndex(null);
+          
+          // Try browser fallback if audio fails
+          tryBrowserSpeechSynthesis(cleanedText);
+        };
+      };
       
-      // Request the text to speak from the server
+      // Function to try browser-based speech synthesis
+      const tryBrowserSpeechSynthesis = (text: string) => {
+        console.log("Trying browser speech synthesis as fallback");
+        
+        if (!window.speechSynthesis) {
+          console.error("Browser doesn't support speech synthesis");
+          setSpeakingIndex(null);
+          return;
+        }
+        
+        // Cancel any ongoing speech
+        window.speechSynthesis.cancel();
+        
+        try {
+          // Try client-side speech synthesis as fallback
+          fetch('/api/text-to-speech/speak?fallback=true', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: cleanedText }),
+          })
+            .then(response => response.json())
+            .then(data => {
+              const textToSpeak = data.text || cleanedText;
+              
+              // For long text, split into chunks
+              if (textToSpeak.length > 200) {
+                const chunks = splitTextIntoChunks(textToSpeak);
+                speakTextChunks(chunks, 0, index);
+              } else {
+                // For short text, speak directly
+                const utterance = new SpeechSynthesisUtterance(textToSpeak);
+                
+                // Apply speech settings
+                utterance.rate = 0.9;
+                utterance.pitch = 1.1;
+                utterance.volume = 1.0;
+                
+                // Find a good voice
+                const voices = availableVoices.length > 0 
+                  ? availableVoices 
+                  : window.speechSynthesis.getVoices();
+                
+                const bestVoice = voices.find(voice => 
+                  voice.lang === 'en-US' && 
+                  (voice.name.includes('female') || voice.name.includes('Female'))
+                ) || voices.find(voice => 
+                  voice.lang.startsWith('en')
+                );
+                
+                if (bestVoice) {
+                  utterance.voice = bestVoice;
+                }
+                
+                // Set up completion handler
+                utterance.onend = () => {
+                  console.log("Speech completed");
+                  setSpeakingIndex(null);
+                };
+                
+                utterance.onerror = (event) => {
+                  console.error("Speech synthesis error:", event);
+                  setSpeakingIndex(null);
+                };
+                
+                // Start speaking
+                window.speechSynthesis.speak(utterance);
+              }
+            });
+        } catch (speechError) {
+          console.error("Browser speech synthesis failed:", speechError);
+          setSpeakingIndex(null);
+          
+          toast({
+            title: "Speech error",
+            description: "There was an error starting the narration. Please try again.",
+            variant: "destructive"
+          });
+        }
+      };
+      
+      // Set up audio element
+      setupAudioElement();
+      
+      // Try to unlock audio playback on mobile
+      const unlockAudio = () => {
+        audioElement.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+        audioElement.play().catch(e => console.warn("Audio unlock failed:", e));
+      };
+      unlockAudio();
+      
+      // Create an audio element for each request to avoid caching issues
+      audioElement.src = `/api/text-to-speech/speak?t=${Date.now()}`;
+      audioElement.crossOrigin = 'anonymous'; // May help with CORS issues
+      
+      // First try direct audio playback from server
+      console.log("Trying to play server-generated audio");
+      
+      // Start playing
       fetch('/api/text-to-speech/speak', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Accept': 'audio/wav' },
         body: JSON.stringify({ text: cleanedText }),
       })
         .then(response => {
           if (!response.ok) {
             throw new Error(`Server response error: ${response.status}`);
           }
-          return response.json();
-        })
-        .then(data => {
-          console.log("Server processed text:", data);
           
-          // Get the processed text and speech settings
-          const textToSpeak = data.text || cleanedText;
+          // Check content type to determine if we got audio or JSON
+          const contentType = response.headers.get('content-type');
           
-          // For long text, split into chunks and speak sequentially
-          if (textToSpeak.length > 200) {
-            const chunks = splitTextIntoChunks(textToSpeak);
-            speakTextChunks(chunks, 0, index);
+          if (contentType && contentType.includes('audio')) {
+            // We got audio data
+            return response.blob();
           } else {
-            // For short text, speak directly
-            const utterance = new SpeechSynthesisUtterance(textToSpeak);
-            
-            // Apply speech settings
-            utterance.rate = 0.9;
-            utterance.pitch = 1.1;
-            utterance.volume = 1.0;
-            
-            // Find a good voice
-            const voices = availableVoices.length > 0 
-              ? availableVoices 
-              : window.speechSynthesis.getVoices();
-            
-            const bestVoice = voices.find(voice => 
-              voice.lang === 'en-US' && 
-              (voice.name.includes('female') || voice.name.includes('Female'))
-            ) || voices.find(voice => 
-              voice.lang.startsWith('en')
-            );
-            
-            if (bestVoice) {
-              utterance.voice = bestVoice;
-            }
-            
-            // Set up completion handler
-            utterance.onend = () => {
-              console.log("Speech completed");
-              setSpeakingIndex(null);
-            };
-            
-            utterance.onerror = (event) => {
-              console.error("Speech synthesis error:", event);
-              setSpeakingIndex(null);
-            };
-            
-            // Start speaking
-            window.speechSynthesis.speak(utterance);
-          }
-        })
-        .catch(error => {
-          console.error("Error with text-to-speech:", error);
-          
-          // Fallback: try direct browser synthesis
-          try {
-            const fallbackUtterance = new SpeechSynthesisUtterance(cleanedText);
-            fallbackUtterance.volume = 1.0;
-            fallbackUtterance.rate = 0.9;
-            
-            fallbackUtterance.onend = () => {
-              setSpeakingIndex(null);
-            };
-            
-            window.speechSynthesis.speak(fallbackUtterance);
-          } catch (speechError) {
-            console.error("Browser speech synthesis failed:", speechError);
-            setSpeakingIndex(null);
-            
-            toast({
-              title: "Speech error",
-              description: "There was an error starting the narration. Please try again.",
-              variant: "destructive"
+            // We got JSON (fallback)
+            return response.json().then(data => {
+              // Use browser speech synthesis
+              tryBrowserSpeechSynthesis(data.text || cleanedText);
+              throw new Error('Server returned JSON instead of audio');
             });
           }
+        })
+        .then(audioBlob => {
+          if (!audioBlob) {
+            throw new Error('No audio received from server');
+          }
+          
+          console.log(`Received audio blob: ${audioBlob.size} bytes, type: ${audioBlob.type}`);
+          
+          // Create URL from blob
+          const audioUrl = URL.createObjectURL(new Blob([audioBlob], { type: 'audio/wav' }));
+          
+          // Set up the audio element
+          audioElement.src = audioUrl;
+          
+          // When audio ends, clean up URL
+          const originalOnEnded = audioElement.onended;
+          audioElement.onended = (e) => {
+            URL.revokeObjectURL(audioUrl);
+            if (originalOnEnded) originalOnEnded.call(audioElement, e);
+          };
+          
+          // Play the audio
+          console.log("Playing audio from server");
+          return audioElement.play();
+        })
+        .catch(error => {
+          console.error("Error with server-side text-to-speech:", error);
+          tryBrowserSpeechSynthesis(cleanedText);
         });
     } catch (error) {
       console.error("Error initializing speech:", error);

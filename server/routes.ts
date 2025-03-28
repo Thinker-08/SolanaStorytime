@@ -6,6 +6,12 @@ import { generateStory } from "./openai";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { knowledgeBase } from "./knowledgeBase";
+import { z } from "zod";
+
+// Create a schema for text-to-speech requests
+const ttsRequestSchema = z.object({
+  text: z.string().min(1),
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize knowledge base
@@ -97,6 +103,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       return res.status(500).json({ 
         message: error instanceof Error ? error.message : "Failed to generate story"
+      });
+    }
+  });
+
+  // Text-to-Speech API endpoint
+  app.post("/api/text-to-speech/speak", async (req: Request, res: Response) => {
+    try {
+      // Validate request body
+      const validatedData = ttsRequestSchema.parse(req.body);
+      const { text } = validatedData;
+      
+      // Only process a limited amount of text
+      const limitedText = text.substring(0, 5000); // Limit very long texts
+      
+      // Attempt to use espeak if available
+      try {
+        const { exec } = require('child_process');
+        const { promisify } = require('util');
+        const execPromise = promisify(exec);
+        const fs = require('fs');
+        const os = require('os');
+        const path = require('path');
+        
+        // Create temp directory if it doesn't exist
+        const tempDir = path.join(os.tmpdir(), 'solana-stories-tts');
+        if (!fs.existsSync(tempDir)) {
+          fs.mkdirSync(tempDir, { recursive: true });
+        }
+        
+        // Generate a temporary filename
+        const timestamp = Date.now();
+        const tempFilePath = path.join(tempDir, `speech-${timestamp}.wav`);
+        
+        // Use espeak for Linux
+        const command = `espeak -w "${tempFilePath}" "${limitedText.replace(/"/g, '\\"')}"`;
+        
+        // Execute the command
+        await execPromise(command);
+        
+        // Read the file and send it as audio
+        const audioData = fs.readFileSync(tempFilePath);
+        
+        // Set appropriate headers
+        res.setHeader('Content-Type', 'audio/wav');
+        res.setHeader('Content-Length', audioData.length);
+        
+        // Send the audio file
+        res.send(audioData);
+        
+        // Clean up the temporary file (async)
+        fs.unlink(tempFilePath, (err: Error | null) => {
+          if (err) console.error("Failed to delete temporary file:", err);
+        });
+        
+        // Successfully returned audio
+        return;
+      } catch (execError: unknown) {
+        console.error("Error using espeak for TTS:", execError);
+        // Continue to fallback
+      }
+      
+      // Fallback: Generate a simple audio notification
+      // This is a minimal fallback that just creates a beep sound
+      // to notify the user that audio should be playing
+      
+      // Create a simple sine wave tone (1 second beep)
+      const generateTone = () => {
+        // Audio parameters
+        const sampleRate = 8000;
+        const seconds = 1;
+        const frequency = 440; // A4 note
+        
+        // Create the audio buffer
+        const numSamples = sampleRate * seconds;
+        const buffer = Buffer.alloc(numSamples);
+        
+        // Fill the buffer with a simple sine wave
+        for (let i = 0; i < numSamples; i++) {
+          const t = i / sampleRate;
+          const sample = Math.sin(2 * Math.PI * frequency * t) * 127;
+          buffer[i] = Math.floor(sample + 128); // Convert to 0-255 range
+        }
+        
+        return buffer;
+      };
+      
+      const audioBuffer = generateTone();
+      
+      // Set headers for raw audio
+      res.setHeader('Content-Type', 'audio/basic');
+      res.setHeader('Content-Length', audioBuffer.length);
+      
+      // Send the audio
+      res.send(audioBuffer);
+    } catch (error) {
+      console.error("Error in text-to-speech API:", error);
+      
+      if (error instanceof ZodError) {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ message: validationError.message });
+      }
+      
+      return res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Failed to process text-to-speech request"
       });
     }
   });

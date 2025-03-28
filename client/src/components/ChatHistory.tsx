@@ -16,6 +16,236 @@ interface ChatHistoryProps {
   isLoading: boolean;
 }
 
+// Create a cross-browser compatible service for Text-to-Speech
+class SpeechService {
+  private static instance: SpeechService;
+  private synth: SpeechSynthesis | null = null;
+  private utterance: SpeechSynthesisUtterance | null = null;
+  private audioElement: HTMLAudioElement | null = null;
+  private onEndCallback: (() => void) | null = null;
+  private isSpeaking: boolean = false;
+  private isClientSpeechSynthesisWorking: boolean = true; // Optimistic by default
+  
+  private constructor() {
+    if (typeof window !== 'undefined') {
+      // Initialize speech synthesis
+      this.synth = window.speechSynthesis;
+      
+      // Initialize audio element for fallback TTS via server
+      this.audioElement = new Audio();
+      
+      // Set up audio element event listeners
+      this.audioElement.addEventListener('ended', () => {
+        this.isSpeaking = false;
+        if (this.onEndCallback) {
+          this.onEndCallback();
+          this.onEndCallback = null;
+        }
+      });
+      
+      this.audioElement.addEventListener('error', (e) => {
+        console.error('Audio element error:', e);
+        this.isSpeaking = false;
+        if (this.onEndCallback) {
+          this.onEndCallback();
+          this.onEndCallback = null;
+        }
+      });
+      
+      // Test if speech synthesis actually works
+      this.testSpeechSynthesis();
+    }
+  }
+  
+  // Test if client-side speech synthesis actually works
+  private testSpeechSynthesis(): void {
+    if (!this.synth) {
+      console.warn("Speech synthesis not available in this browser");
+      this.isClientSpeechSynthesisWorking = false;
+      return;
+    }
+    
+    // Create a silent test utterance
+    try {
+      const testUtterance = new SpeechSynthesisUtterance("test");
+      testUtterance.volume = 0; // Silent test
+      
+      testUtterance.onend = () => {
+        console.log("🎉 Audio test successful - speech synthesis appears to be working");
+        this.isClientSpeechSynthesisWorking = true;
+      };
+      
+      testUtterance.onerror = (event) => {
+        console.error("❌ Audio test failed - speech synthesis error:", event);
+        this.isClientSpeechSynthesisWorking = false;
+      };
+      
+      // Fire the test
+      this.synth.speak(testUtterance);
+    } catch (error) {
+      console.error("❌ Speech synthesis test exception:", error);
+      this.isClientSpeechSynthesisWorking = false;
+    }
+  }
+  
+  public static getInstance(): SpeechService {
+    if (!SpeechService.instance) {
+      SpeechService.instance = new SpeechService();
+    }
+    return SpeechService.instance;
+  }
+  
+  public speak(text: string, onEnd?: () => void): void {
+    // Stop any current speech
+    this.stopSpeaking();
+    
+    // Save callback
+    this.onEndCallback = onEnd || null;
+    
+    if (!text) return;
+    
+    this.isSpeaking = true;
+    
+    // If client speech synthesis is working and not running in Chrome, use it
+    // Chrome has issues with longer texts, so we'll just use server-side for it
+    if (this.isClientSpeechSynthesisWorking && !this.isChrome()) {
+      try {
+        // Create and configure utterance
+        this.utterance = new SpeechSynthesisUtterance(text);
+        this.utterance.rate = 0.9;  // Slightly slower for better comprehension
+        this.utterance.pitch = 1.1; // Slightly higher for children's stories
+        this.utterance.volume = 1.0;
+        
+        // Find an appropriate voice
+        const voices = this.synth?.getVoices() || [];
+        
+        // First try to find female English voice (best for children's stories)
+        const englishVoice = voices.find(voice => 
+          voice.lang.includes('en') && 
+          (voice.name.includes('female') || 
+           voice.name.includes('Female') || 
+           voice.name.includes('Samantha'))
+        ) || voices.find(voice => voice.lang.includes('en')) || voices[0];
+        
+        if (englishVoice) {
+          this.utterance.voice = englishVoice;
+        }
+        
+        // Set up callbacks
+        this.utterance.onend = () => {
+          this.isSpeaking = false;
+          if (this.onEndCallback) {
+            this.onEndCallback();
+            this.onEndCallback = null;
+          }
+        };
+        
+        // Handle errors by falling back to server TTS
+        this.utterance.onerror = (e) => {
+          console.error('Speech synthesis error:', e);
+          this.useServerTTS(text);
+        };
+        
+        // Start speaking
+        this.synth?.speak(this.utterance);
+      } catch (error) {
+        console.error('Speech synthesis failed:', error);
+        // Fall back to server TTS
+        this.useServerTTS(text);
+      }
+    } else {
+      // Use server TTS directly if client TTS isn't working or we're in Chrome
+      this.useServerTTS(text);
+    }
+  }
+  
+  private useServerTTS(text: string): void {
+    if (!this.audioElement) return;
+    
+    console.log("Using server-side text-to-speech API");
+    
+    fetch('/api/text-to-speech/speak', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text }),
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.blob();
+      })
+      .then(audioBlob => {
+        const audioUrl = URL.createObjectURL(audioBlob);
+        if (this.audioElement) {
+          this.audioElement.src = audioUrl;
+          
+          // Try to play the audio, handling any errors
+          this.audioElement.play()
+            .catch(err => {
+              console.error("Error playing audio:", err);
+              
+              // Some browsers require user interaction first
+              if (err.name === 'NotAllowedError') {
+                alert('Please click OK to allow audio playback for story narration.');
+                
+                // Try again after user interaction
+                this.audioElement?.play().catch(e => {
+                  console.error("Second attempt to play audio failed:", e);
+                  this.isSpeaking = false;
+                  if (this.onEndCallback) {
+                    this.onEndCallback();
+                    this.onEndCallback = null;
+                  }
+                });
+              } else {
+                this.isSpeaking = false;
+                if (this.onEndCallback) {
+                  this.onEndCallback();
+                  this.onEndCallback = null;
+                }
+              }
+            });
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching audio:', error);
+        this.isSpeaking = false;
+        if (this.onEndCallback) {
+          this.onEndCallback();
+          this.onEndCallback = null;
+        }
+      });
+  }
+  
+  public stopSpeaking(): void {
+    this.isSpeaking = false;
+    
+    // Stop any client-side speech synthesis
+    if (this.synth) {
+      this.synth.cancel();
+    }
+    
+    // Stop any audio playback
+    if (this.audioElement) {
+      this.audioElement.pause();
+      this.audioElement.currentTime = 0;
+    }
+    
+    // Reset state
+    this.utterance = null;
+    this.onEndCallback = null;
+  }
+  
+  public isChrome(): boolean {
+    return typeof window !== 'undefined' && 
+           navigator.userAgent.indexOf('Chrome') !== -1 &&
+           navigator.userAgent.indexOf('Edge') === -1; // Not Edge
+  }
+}
+
 const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [speakingIndex, setSpeakingIndex] = useState<number | null>(null);
@@ -161,43 +391,24 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
     };
   }, [voicesLoaded]);
 
-  // Text-to-speech functionality
+  // Text-to-speech functionality using our SpeechService
   const speak = (text: string, index: number) => {
-    // First attempt to unlock audio if needed
-    if (audioContext.current && audioContext.current.state === 'suspended') {
-      audioContext.current.resume().catch(err => {
-        console.error("Failed to resume AudioContext:", err);
-      });
-    }
-    
-    console.log("Starting text-to-speech...");
-    
-    // Check if speech synthesis is available
-    if (typeof window === 'undefined' || !window.speechSynthesis) {
-      console.error("Speech synthesis not supported in this browser");
-      toast({
-        title: "Speech not supported",
-        description: "Text-to-speech is not supported in your browser.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    // Stop any current speech
-    window.speechSynthesis.cancel();
+    console.log("Starting text-to-speech with SpeechService...");
     
     // If already speaking this message, stop it
     if (speakingIndex === index) {
       console.log("Stopping speech");
+      SpeechService.getInstance().stopSpeaking();
       setSpeakingIndex(null);
       return;
     }
     
     try {
-      // For Replit environment and browsers that have issues with long text
-      // Break up the text into smaller chunks to improve reliability
-      const textChunks = splitTextIntoChunks(text, 150); // Use smaller chunks for better reliability
-      console.log(`Text split into ${textChunks.length} chunks`);
+      // Clean up the text by removing markdown
+      const cleanedText = text
+        .replace(/\*\*/g, '')  // Remove bold markdown
+        .replace(/\n---\n/g, ' ') // Remove horizontal rules
+        .replace(/#{1,6}\s/g, '') // Remove markdown headers
       
       // Set the speaking state now to provide immediate feedback to the user
       setSpeakingIndex(index);
@@ -208,8 +419,11 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
         description: "The story will be read aloud now. Click 'Stop' to end narration.",
       });
       
-      // Process the first chunk immediately
-      processTextChunk(textChunks, 0, index);
+      // Use the SpeechService to speak
+      SpeechService.getInstance().speak(cleanedText, () => {
+        console.log("Speech complete");
+        setSpeakingIndex(null);
+      });
     } catch (error) {
       console.error("Error in speech synthesis:", error);
       setSpeakingIndex(null);

@@ -132,8 +132,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: "Use the browser's speech synthesis API",
           text: limitedText,
           speechSettings: {
-            rate: 0.9,    // Slightly slower than default
-            pitch: 1.1,   // Slightly higher pitch (good for children's stories)
+            rate: 1.1,    // Slightly faster for child-like speech
+            pitch: 1.4,   // Higher pitch for child-like voice
             volume: 1.0,  // Full volume
           }
         });
@@ -147,8 +147,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Write text to a temporary file to avoid command line issues with quotes, etc.
       fs.writeFileSync(tempTextFile, limitedText);
       
-      // Generate speech with espeak
-      const command = `espeak -v en-us+f3 -s 130 -p 50 -a 200 -w ${tempWavFile} -f ${tempTextFile}`;
+      // Generate speech with espeak using a more child-friendly voice
+      // Higher pitch and speed for a younger voice effect
+      const command = `espeak -v en+f3 -s 150 -p 70 -a 200 -w ${tempWavFile} -f ${tempTextFile}`;
       
       // Create a promise to handle the async execution
       const generateSpeech = new Promise<void>((resolve, reject) => {
@@ -168,9 +169,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               message: "Server-side speech generation failed, use browser fallback",
               text: limitedText,
               speechSettings: {
-                rate: 0.9,
-                pitch: 1.1,
-                volume: 1.0,
+                rate: 1.1,    // Slightly faster for child-like speech
+                pitch: 1.4,   // Higher pitch for child-like voice
+                volume: 1.0,  // Full volume
               }
             });
             resolve();
@@ -194,9 +195,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 message: "Failed to read audio file, use browser fallback",
                 text: limitedText,
                 speechSettings: {
-                  rate: 0.9,
-                  pitch: 1.1,
-                  volume: 1.0,
+                  rate: 1.1,    // Slightly faster for child-like speech
+                  pitch: 1.4,   // Higher pitch for child-like voice
+                  volume: 1.0,  // Full volume
                 }
               });
               resolve();

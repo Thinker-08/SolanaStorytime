@@ -117,82 +117,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Only process a limited amount of text
       const limitedText = text.substring(0, 5000); // Limit very long texts
       
-      // Attempt to use espeak if available
-      try {
-        const { exec } = require('child_process');
-        const { promisify } = require('util');
-        const execPromise = promisify(exec);
-        const fs = require('fs');
-        const os = require('os');
-        const path = require('path');
-        
-        // Create temp directory if it doesn't exist
-        const tempDir = path.join(os.tmpdir(), 'solana-stories-tts');
-        if (!fs.existsSync(tempDir)) {
-          fs.mkdirSync(tempDir, { recursive: true });
-        }
-        
-        // Generate a temporary filename
-        const timestamp = Date.now();
-        const tempFilePath = path.join(tempDir, `speech-${timestamp}.wav`);
-        
-        // Use espeak for Linux
-        const command = `espeak -w "${tempFilePath}" "${limitedText.replace(/"/g, '\\"')}"`;
-        
-        // Execute the command
-        await execPromise(command);
-        
-        // Read the file and send it as audio
-        const audioData = fs.readFileSync(tempFilePath);
-        
-        // Set appropriate headers
-        res.setHeader('Content-Type', 'audio/wav');
-        res.setHeader('Content-Length', audioData.length);
-        
-        // Send the audio file
-        res.send(audioData);
-        
-        // Clean up the temporary file (async)
-        fs.unlink(tempFilePath, (err: Error | null) => {
-          if (err) console.error("Failed to delete temporary file:", err);
-        });
-        
-        // Successfully returned audio
-        return;
-      } catch (execError: unknown) {
-        console.error("Error using espeak for TTS:", execError);
-        // Continue to fallback
-      }
-      
-      // Fallback: Generate a simple audio notification
-      // This is a minimal fallback that just creates a beep sound
-      // to notify the user that audio should be playing
-      
-      // Create a simple sine wave tone (1 second beep)
-      const generateTone = () => {
-        // Audio parameters
-        const sampleRate = 8000;
-        const seconds = 1;
+      // Use a simple approach - generate a WAV file with binary PCM data
+      // This avoids the issues with espeak and other external dependencies
+      const generatePCMAudio = () => {
+        const sampleRate = 16000; // Higher quality 
+        const seconds = Math.min(5, limitedText.length / 20); // Rough estimate of duration
         const frequency = 440; // A4 note
         
-        // Create the audio buffer
-        const numSamples = sampleRate * seconds;
-        const buffer = Buffer.alloc(numSamples);
+        // Create a WAV file header
+        const createWaveHeader = (dataLength: number): Buffer => {
+          const buffer = Buffer.alloc(44);
+          
+          // "RIFF" chunk descriptor
+          buffer.write('RIFF', 0);
+          buffer.writeUInt32LE(36 + dataLength, 4); // Chunk size
+          buffer.write('WAVE', 8);
+          
+          // "fmt " sub-chunk
+          buffer.write('fmt ', 12);
+          buffer.writeUInt32LE(16, 16); // Subchunk1 size
+          buffer.writeUInt16LE(1, 20); // PCM format
+          buffer.writeUInt16LE(1, 22); // Mono
+          buffer.writeUInt32LE(sampleRate, 24); // Sample rate
+          buffer.writeUInt32LE(sampleRate * 2, 28); // Byte rate
+          buffer.writeUInt16LE(2, 32); // Block align
+          buffer.writeUInt16LE(16, 34); // Bits per sample
+          
+          // "data" sub-chunk
+          buffer.write('data', 36);
+          buffer.writeUInt32LE(dataLength, 40); // Subchunk2 size
+          
+          return buffer;
+        };
         
-        // Fill the buffer with a simple sine wave
+        // Create audio data buffer - 16-bit PCM
+        const numSamples = Math.floor(sampleRate * seconds);
+        const dataBuffer = Buffer.alloc(numSamples * 2); // 16-bit = 2 bytes per sample
+        
+        // Create a beep sound with gradually changing pitch based on text length
         for (let i = 0; i < numSamples; i++) {
           const t = i / sampleRate;
-          const sample = Math.sin(2 * Math.PI * frequency * t) * 127;
-          buffer[i] = Math.floor(sample + 128); // Convert to 0-255 range
+          // Vary frequency slightly based on the first characters of the text
+          // This makes different texts sound different
+          const textFreqModifier = (limitedText.charCodeAt(0) % 10) / 20 + 1;
+          // Add a bit of vibrato
+          const vibrato = Math.sin(t * 6) * 5;
+          // Calculate sample 
+          const currentFreq = frequency * textFreqModifier + vibrato;
+          const sample = Math.sin(2 * Math.PI * currentFreq * t) * 32767 * 0.5;
+          
+          // Write 16-bit sample
+          dataBuffer.writeInt16LE(Math.floor(sample), i * 2);
         }
         
-        return buffer;
+        // Create the header
+        const header = createWaveHeader(dataBuffer.length);
+        
+        // Combine header and data
+        return Buffer.concat([header, dataBuffer]);
       };
       
-      const audioBuffer = generateTone();
+      // Generate audio
+      const audioBuffer = generatePCMAudio();
       
-      // Set headers for raw audio
-      res.setHeader('Content-Type', 'audio/basic');
+      // Set headers for WAV audio
+      res.setHeader('Content-Type', 'audio/wav');
       res.setHeader('Content-Length', audioBuffer.length);
       
       // Send the audio

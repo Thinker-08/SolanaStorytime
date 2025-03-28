@@ -164,54 +164,142 @@ class SpeechService {
     
     console.log("Using server-side text-to-speech API");
     
+    // Create a new Audio element for each request to avoid issues with reusing
+    this.audioElement = new Audio();
+    
+    // Set up event listeners
+    this.audioElement.addEventListener('ended', () => {
+      console.log("Audio playback ended");
+      this.isSpeaking = false;
+      if (this.onEndCallback) {
+        this.onEndCallback();
+        this.onEndCallback = null;
+      }
+    });
+    
+    this.audioElement.addEventListener('error', (e) => {
+      console.error("Audio element error:", e);
+      this.isSpeaking = false;
+      if (this.onEndCallback) {
+        this.onEndCallback();
+        this.onEndCallback = null;
+      }
+    });
+    
+    // Create FormData for the request (this can help with binary responses)
+    const formData = new FormData();
+    formData.append('text', text);
+    
+    // Trick to ensure cross-browser compatibility: pre-unlock audio
+    // Some browsers require user interaction before audio can play
+    const unlockAudio = () => {
+      // Create and play a silent sound
+      const silentSound = new Audio();
+      silentSound.src = 'data:audio/mp3;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQBUSVQyAAAABgAAAzIyMzUAVFNTRQAAAA8AAANMYXZmNTcuODMuMTAwAAAAAAAAAAAAAAD/80DEAAAAA0gAAAAATEFNRTMuMTAwVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQsRbAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQMSkAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV';
+      
+      silentSound.play().catch(e => {
+        console.warn("Failed to unlock audio with silent sound:", e);
+      });
+      
+      // Also try to unlock with a gesture on the document
+      document.addEventListener('click', function unlockClick() {
+        silentSound.play().catch(() => {});
+        document.removeEventListener('click', unlockClick);
+      }, { once: true });
+    };
+    
+    // Try to unlock audio
+    unlockAudio();
+    
+    // Make a fetch request for the audio
     fetch('/api/text-to-speech/speak', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'audio/wav,audio/*;q=0.9',
+        'Cache-Control': 'no-cache',
       },
       body: JSON.stringify({ text }),
     })
       .then(response => {
         if (!response.ok) {
-          throw new Error('Network response was not ok');
+          console.error('Server returned error status:', response.status);
+          throw new Error(`Network response was not ok: ${response.status}`);
         }
         return response.blob();
       })
       .then(audioBlob => {
-        const audioUrl = URL.createObjectURL(audioBlob);
-        if (this.audioElement) {
-          this.audioElement.src = audioUrl;
-          
-          // Try to play the audio, handling any errors
-          this.audioElement.play()
-            .catch(err => {
-              console.error("Error playing audio:", err);
-              
-              // Some browsers require user interaction first
-              if (err.name === 'NotAllowedError') {
-                alert('Please click OK to allow audio playback for story narration.');
-                
-                // Try again after user interaction
-                this.audioElement?.play().catch(e => {
-                  console.error("Second attempt to play audio failed:", e);
-                  this.isSpeaking = false;
-                  if (this.onEndCallback) {
-                    this.onEndCallback();
-                    this.onEndCallback = null;
-                  }
-                });
-              } else {
-                this.isSpeaking = false;
-                if (this.onEndCallback) {
-                  this.onEndCallback();
-                  this.onEndCallback = null;
-                }
-              }
-            });
+        // For debugging
+        console.log(`Received audio blob: ${audioBlob.size} bytes, type: ${audioBlob.type}`);
+        
+        if (audioBlob.size === 0) {
+          throw new Error('Empty audio blob received from server');
         }
+        
+        // Ensure we have a supported audio MIME type or use a sensible default
+        const audioType = audioBlob.type || 'audio/wav';
+        
+        // Convert the blob to a URL
+        const audioUrl = URL.createObjectURL(
+          // Ensure correct MIME type if server doesn't provide it
+          new Blob([audioBlob], { type: audioType })
+        );
+        
+        if (!this.audioElement) {
+          this.audioElement = new Audio();
+        }
+        
+        // Set the source
+        this.audioElement.src = audioUrl;
+        
+        // Clean up the URL when the audio is done
+        this.audioElement.onended = () => {
+          URL.revokeObjectURL(audioUrl);
+          this.isSpeaking = false;
+          if (this.onEndCallback) {
+            this.onEndCallback();
+            this.onEndCallback = null;
+          }
+        };
+        
+        // Attempt to play with error handling
+        return this.audioElement.play()
+          .catch(err => {
+            console.error("Error playing audio:", err);
+            
+            // Special handling for NotAllowedError which often means user interaction is required
+            if (err.name === 'NotAllowedError') {
+              alert("Please click OK to enable audio for story narration.");
+              
+              // Try again after the alert (which counts as user interaction)
+              return this.audioElement?.play();
+            }
+            
+            throw err; // Re-throw other errors
+          });
       })
       .catch(error => {
-        console.error('Error fetching audio:', error);
+        console.error('Error with text-to-speech:', error);
+        
+        // Try direct browser speech synthesis as a last resort
+        if (window.speechSynthesis) {
+          try {
+            const fallbackUtterance = new SpeechSynthesisUtterance(text);
+            fallbackUtterance.volume = 1.0;
+            fallbackUtterance.rate = 0.9;
+            
+            if (this.onEndCallback) {
+              fallbackUtterance.onend = this.onEndCallback;
+            }
+            
+            window.speechSynthesis.speak(fallbackUtterance);
+            console.log("Using direct browser speech synthesis as fallback");
+          } catch (speechError) {
+            console.error("Even browser speech synthesis failed:", speechError);
+          }
+        }
+        
+        // Clean up regardless of what happened
         this.isSpeaking = false;
         if (this.onEndCallback) {
           this.onEndCallback();

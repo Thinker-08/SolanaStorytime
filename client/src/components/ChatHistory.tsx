@@ -16,324 +16,6 @@ interface ChatHistoryProps {
   isLoading: boolean;
 }
 
-// Create a cross-browser compatible service for Text-to-Speech
-class SpeechService {
-  private static instance: SpeechService;
-  private synth: SpeechSynthesis | null = null;
-  private utterance: SpeechSynthesisUtterance | null = null;
-  private audioElement: HTMLAudioElement | null = null;
-  private onEndCallback: (() => void) | null = null;
-  private isSpeaking: boolean = false;
-  private isClientSpeechSynthesisWorking: boolean = true; // Optimistic by default
-  
-  private constructor() {
-    if (typeof window !== 'undefined') {
-      // Initialize speech synthesis
-      this.synth = window.speechSynthesis;
-      
-      // Initialize audio element for fallback TTS via server
-      this.audioElement = new Audio();
-      
-      // Set up audio element event listeners
-      this.audioElement.addEventListener('ended', () => {
-        this.isSpeaking = false;
-        if (this.onEndCallback) {
-          this.onEndCallback();
-          this.onEndCallback = null;
-        }
-      });
-      
-      this.audioElement.addEventListener('error', (e) => {
-        console.error('Audio element error:', e);
-        this.isSpeaking = false;
-        if (this.onEndCallback) {
-          this.onEndCallback();
-          this.onEndCallback = null;
-        }
-      });
-      
-      // Test if speech synthesis actually works
-      this.testSpeechSynthesis();
-    }
-  }
-  
-  // Test if client-side speech synthesis actually works
-  private testSpeechSynthesis(): void {
-    if (!this.synth) {
-      console.warn("Speech synthesis not available in this browser");
-      this.isClientSpeechSynthesisWorking = false;
-      return;
-    }
-    
-    // Create a silent test utterance
-    try {
-      const testUtterance = new SpeechSynthesisUtterance("test");
-      testUtterance.volume = 0; // Silent test
-      
-      testUtterance.onend = () => {
-        console.log("🎉 Audio test successful - speech synthesis appears to be working");
-        this.isClientSpeechSynthesisWorking = true;
-      };
-      
-      testUtterance.onerror = (event) => {
-        console.error("❌ Audio test failed - speech synthesis error:", event);
-        this.isClientSpeechSynthesisWorking = false;
-      };
-      
-      // Fire the test
-      this.synth.speak(testUtterance);
-    } catch (error) {
-      console.error("❌ Speech synthesis test exception:", error);
-      this.isClientSpeechSynthesisWorking = false;
-    }
-  }
-  
-  public static getInstance(): SpeechService {
-    if (!SpeechService.instance) {
-      SpeechService.instance = new SpeechService();
-    }
-    return SpeechService.instance;
-  }
-  
-  public speak(text: string, onEnd?: () => void): void {
-    // Stop any current speech
-    this.stopSpeaking();
-    
-    // Save callback
-    this.onEndCallback = onEnd || null;
-    
-    if (!text) return;
-    
-    this.isSpeaking = true;
-    
-    // If client speech synthesis is working and not running in Chrome, use it
-    // Chrome has issues with longer texts, so we'll just use server-side for it
-    if (this.isClientSpeechSynthesisWorking && !this.isChrome()) {
-      try {
-        // Create and configure utterance
-        this.utterance = new SpeechSynthesisUtterance(text);
-        this.utterance.rate = 0.9;  // Slightly slower for better comprehension
-        this.utterance.pitch = 1.1; // Slightly higher for children's stories
-        this.utterance.volume = 1.0;
-        
-        // Find an appropriate voice
-        const voices = this.synth?.getVoices() || [];
-        
-        // First try to find female English voice (best for children's stories)
-        const englishVoice = voices.find(voice => 
-          voice.lang.includes('en') && 
-          (voice.name.includes('female') || 
-           voice.name.includes('Female') || 
-           voice.name.includes('Samantha'))
-        ) || voices.find(voice => voice.lang.includes('en')) || voices[0];
-        
-        if (englishVoice) {
-          this.utterance.voice = englishVoice;
-        }
-        
-        // Set up callbacks
-        this.utterance.onend = () => {
-          this.isSpeaking = false;
-          if (this.onEndCallback) {
-            this.onEndCallback();
-            this.onEndCallback = null;
-          }
-        };
-        
-        // Handle errors by falling back to server TTS
-        this.utterance.onerror = (e) => {
-          console.error('Speech synthesis error:', e);
-          this.useServerTTS(text);
-        };
-        
-        // Start speaking
-        this.synth?.speak(this.utterance);
-      } catch (error) {
-        console.error('Speech synthesis failed:', error);
-        // Fall back to server TTS
-        this.useServerTTS(text);
-      }
-    } else {
-      // Use server TTS directly if client TTS isn't working or we're in Chrome
-      this.useServerTTS(text);
-    }
-  }
-  
-  private useServerTTS(text: string): void {
-    if (!this.audioElement) return;
-    
-    console.log("Using server-side text-to-speech API");
-    
-    // Create a new Audio element for each request to avoid issues with reusing
-    this.audioElement = new Audio();
-    
-    // Set up event listeners
-    this.audioElement.addEventListener('ended', () => {
-      console.log("Audio playback ended");
-      this.isSpeaking = false;
-      if (this.onEndCallback) {
-        this.onEndCallback();
-        this.onEndCallback = null;
-      }
-    });
-    
-    this.audioElement.addEventListener('error', (e) => {
-      console.error("Audio element error:", e);
-      this.isSpeaking = false;
-      if (this.onEndCallback) {
-        this.onEndCallback();
-        this.onEndCallback = null;
-      }
-    });
-    
-    // Create FormData for the request (this can help with binary responses)
-    const formData = new FormData();
-    formData.append('text', text);
-    
-    // Trick to ensure cross-browser compatibility: pre-unlock audio
-    // Some browsers require user interaction before audio can play
-    const unlockAudio = () => {
-      // Create and play a silent sound
-      const silentSound = new Audio();
-      silentSound.src = 'data:audio/mp3;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQBUSVQyAAAABgAAAzIyMzUAVFNTRQAAAA8AAANMYXZmNTcuODMuMTAwAAAAAAAAAAAAAAD/80DEAAAAA0gAAAAATEFNRTMuMTAwVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQsRbAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQMSkAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV';
-      
-      silentSound.play().catch(e => {
-        console.warn("Failed to unlock audio with silent sound:", e);
-      });
-      
-      // Also try to unlock with a gesture on the document
-      document.addEventListener('click', function unlockClick() {
-        silentSound.play().catch(() => {});
-        document.removeEventListener('click', unlockClick);
-      }, { once: true });
-    };
-    
-    // Try to unlock audio
-    unlockAudio();
-    
-    // Make a fetch request for the audio
-    fetch('/api/text-to-speech/speak', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'audio/wav,audio/*;q=0.9',
-        'Cache-Control': 'no-cache',
-      },
-      body: JSON.stringify({ text }),
-    })
-      .then(response => {
-        if (!response.ok) {
-          console.error('Server returned error status:', response.status);
-          throw new Error(`Network response was not ok: ${response.status}`);
-        }
-        return response.blob();
-      })
-      .then(audioBlob => {
-        // For debugging
-        console.log(`Received audio blob: ${audioBlob.size} bytes, type: ${audioBlob.type}`);
-        
-        if (audioBlob.size === 0) {
-          throw new Error('Empty audio blob received from server');
-        }
-        
-        // Ensure we have a supported audio MIME type or use a sensible default
-        const audioType = audioBlob.type || 'audio/wav';
-        
-        // Convert the blob to a URL
-        const audioUrl = URL.createObjectURL(
-          // Ensure correct MIME type if server doesn't provide it
-          new Blob([audioBlob], { type: audioType })
-        );
-        
-        if (!this.audioElement) {
-          this.audioElement = new Audio();
-        }
-        
-        // Set the source
-        this.audioElement.src = audioUrl;
-        
-        // Clean up the URL when the audio is done
-        this.audioElement.onended = () => {
-          URL.revokeObjectURL(audioUrl);
-          this.isSpeaking = false;
-          if (this.onEndCallback) {
-            this.onEndCallback();
-            this.onEndCallback = null;
-          }
-        };
-        
-        // Attempt to play with error handling
-        return this.audioElement.play()
-          .catch(err => {
-            console.error("Error playing audio:", err);
-            
-            // Special handling for NotAllowedError which often means user interaction is required
-            if (err.name === 'NotAllowedError') {
-              alert("Please click OK to enable audio for story narration.");
-              
-              // Try again after the alert (which counts as user interaction)
-              return this.audioElement?.play();
-            }
-            
-            throw err; // Re-throw other errors
-          });
-      })
-      .catch(error => {
-        console.error('Error with text-to-speech:', error);
-        
-        // Try direct browser speech synthesis as a last resort
-        if (window.speechSynthesis) {
-          try {
-            const fallbackUtterance = new SpeechSynthesisUtterance(text);
-            fallbackUtterance.volume = 1.0;
-            fallbackUtterance.rate = 0.9;
-            
-            if (this.onEndCallback) {
-              fallbackUtterance.onend = this.onEndCallback;
-            }
-            
-            window.speechSynthesis.speak(fallbackUtterance);
-            console.log("Using direct browser speech synthesis as fallback");
-          } catch (speechError) {
-            console.error("Even browser speech synthesis failed:", speechError);
-          }
-        }
-        
-        // Clean up regardless of what happened
-        this.isSpeaking = false;
-        if (this.onEndCallback) {
-          this.onEndCallback();
-          this.onEndCallback = null;
-        }
-      });
-  }
-  
-  public stopSpeaking(): void {
-    this.isSpeaking = false;
-    
-    // Stop any client-side speech synthesis
-    if (this.synth) {
-      this.synth.cancel();
-    }
-    
-    // Stop any audio playback
-    if (this.audioElement) {
-      this.audioElement.pause();
-      this.audioElement.currentTime = 0;
-    }
-    
-    // Reset state
-    this.utterance = null;
-    this.onEndCallback = null;
-  }
-  
-  public isChrome(): boolean {
-    return typeof window !== 'undefined' && 
-           navigator.userAgent.indexOf('Chrome') !== -1 &&
-           navigator.userAgent.indexOf('Edge') === -1; // Not Edge
-  }
-}
-
 const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [speakingIndex, setSpeakingIndex] = useState<number | null>(null);
@@ -352,80 +34,13 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
   // State to track if voices have loaded
   const [voicesLoaded, setVoicesLoaded] = useState(false);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
-  const [audioSupported, setAudioSupported] = useState<boolean>(false);
-  const audioContext = useRef<AudioContext | null>(null);
   
-  // Initialize speech synthesis
+  // Initialize speech synthesis and load voices
   useEffect(() => {
-    // Check if speech synthesis is supported
     if (typeof window === 'undefined' || !window.speechSynthesis) {
-      console.error("CRITICAL: Speech synthesis not supported in this browser");
+      console.error("Speech synthesis not supported in this browser");
       return;
     }
-    
-    // Create AudioContext for unlocking audio on iOS/Safari
-    try {
-      // @ts-ignore - AudioContext might not be available in all browsers
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (AudioContext) {
-        audioContext.current = new AudioContext();
-      }
-    } catch (e) {
-      console.warn("AudioContext not supported:", e);
-    }
-    
-    // Helper function to unlock audio on iOS/Safari
-    const unlockAudio = () => {
-      if (audioContext.current && audioContext.current.state === 'suspended') {
-        audioContext.current.resume().then(() => {
-          console.log("AudioContext resumed successfully");
-        }).catch(err => {
-          console.error("Failed to resume AudioContext:", err);
-        });
-      }
-      
-      // Create and play a silent sound to unlock the audio
-      if (window.speechSynthesis) {
-        const unlockUtterance = new SpeechSynthesisUtterance('');
-        unlockUtterance.volume = 0.01; // Nearly silent but not completely
-        window.speechSynthesis.speak(unlockUtterance);
-      }
-      
-      // Remove the listeners after first interaction
-      document.body.removeEventListener('click', unlockAudio);
-      document.body.removeEventListener('touchstart', unlockAudio);
-    };
-    
-    // Add event listeners to unlock audio on first user interaction
-    document.body.addEventListener('click', unlockAudio);
-    document.body.addEventListener('touchstart', unlockAudio);
-    
-    // Test audio with a simple utterance
-    const testAudio = () => {
-      try {
-        // Ensure speech synthesis is not busy
-        window.speechSynthesis.cancel();
-        
-        // Create a short test utterance that won't be noticed by users
-        const testUtterance = new SpeechSynthesisUtterance("test");
-        testUtterance.volume = 0.1; // Very quiet but not silent (silent can fail on some browsers)
-        testUtterance.rate = 1.0;
-        testUtterance.onend = () => {
-          console.log("🎉 Audio test successful - speech synthesis appears to be working");
-          setAudioSupported(true);
-        };
-        testUtterance.onerror = (e) => {
-          console.error("❌ Audio test failed - speech synthesis error:", e);
-          setAudioSupported(false);
-        };
-        
-        // Speak the test utterance
-        window.speechSynthesis.speak(testUtterance);
-      } catch (error) {
-        console.error("❌ Could not test audio:", error);
-        setAudioSupported(false);
-      }
-    };
     
     // Function to handle voices changed event
     const handleVoicesChanged = () => {
@@ -433,11 +48,6 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
       console.log("Voices loaded:", voices.length);
       setAvailableVoices(voices);
       setVoicesLoaded(voices.length > 0);
-      
-      // Test audio after voices load
-      if (voices.length > 0) {
-        testAudio();
-      }
     };
     
     // Force cleanup of any ongoing speech
@@ -449,9 +59,6 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
       console.log("Voices already loaded:", voices.length);
       setAvailableVoices(voices);
       setVoicesLoaded(true);
-      
-      // Test audio immediately if voices are already loaded
-      testAudio();
     }
     
     // Add event listener for voices changed
@@ -464,206 +71,20 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
         console.log("Delayed voices loaded:", delayedVoices.length);
         setAvailableVoices(delayedVoices);
         setVoicesLoaded(true);
-        
-        // Test audio after delayed voice loading
-        testAudio();
       }
     }, 1000);
     
     // Cleanup
     return () => {
       window.speechSynthesis.removeEventListener("voiceschanged", handleVoicesChanged);
-      document.body.removeEventListener('click', unlockAudio);
-      document.body.removeEventListener('touchstart', unlockAudio);
       window.speechSynthesis.cancel();
     };
   }, [voicesLoaded]);
 
-  // Text-to-speech functionality using our SpeechService
-  const speak = (text: string, index: number) => {
-    console.log("Starting text-to-speech with SpeechService...");
-    
-    // If already speaking this message, stop it
-    if (speakingIndex === index) {
-      console.log("Stopping speech");
-      SpeechService.getInstance().stopSpeaking();
-      setSpeakingIndex(null);
-      return;
-    }
-    
-    try {
-      // Clean up the text by removing markdown
-      const cleanedText = text
-        .replace(/\*\*/g, '')  // Remove bold markdown
-        .replace(/\n---\n/g, ' ') // Remove horizontal rules
-        .replace(/#{1,6}\s/g, '') // Remove markdown headers
-      
-      // Set the speaking state now to provide immediate feedback to the user
-      setSpeakingIndex(index);
-      
-      // Show a toast notification to indicate that speech is starting
-      toast({
-        title: "Story narration starting",
-        description: "The story will be read aloud now. Click 'Stop' to end narration.",
-      });
-      
-      // Use the SpeechService to speak
-      SpeechService.getInstance().speak(cleanedText, () => {
-        console.log("Speech complete");
-        setSpeakingIndex(null);
-      });
-    } catch (error) {
-      console.error("Error in speech synthesis:", error);
-      setSpeakingIndex(null);
-      toast({
-        title: "Speech error",
-        description: "There was an error starting the narration. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
-  
-  // Function to split text into smaller chunks for better TTS performance
-  const splitTextIntoChunks = (text: string, chunkSize: number): string[] => {
-    const chunks: string[] = [];
-    
-    // Remove any special characters or markdown that might confuse speech synthesis
-    const cleanedText = text
-      .replace(/\*\*/g, '')  // Remove bold markdown
-      .replace(/\n---\n/g, ' ') // Remove horizontal rules
-      .replace(/#{1,6}\s/g, '') // Remove markdown headers
-      
-    // Split by sentences first for more natural pauses
-    const sentences = cleanedText.split(/(?<=[.!?])\s+/);
-    let currentChunk = "";
-    
-    for (const sentence of sentences) {
-      if ((currentChunk + sentence).length > chunkSize) {
-        // If adding this sentence would exceed chunk size, save current chunk and start a new one
-        if (currentChunk) {
-          chunks.push(currentChunk);
-          currentChunk = "";
-        }
-        
-        // If sentence itself is longer than chunk size, split it further
-        if (sentence.length > chunkSize) {
-          const words = sentence.split(" ");
-          let tempChunk = "";
-          
-          for (const word of words) {
-            if ((tempChunk + " " + word).length > chunkSize) {
-              chunks.push(tempChunk);
-              tempChunk = word;
-            } else {
-              tempChunk += (tempChunk ? " " : "") + word;
-            }
-          }
-          
-          if (tempChunk) {
-            currentChunk = tempChunk;
-          }
-        } else {
-          currentChunk = sentence;
-        }
-      } else {
-        currentChunk += (currentChunk ? " " : "") + sentence;
-      }
-    }
-    
-    // Add any remaining text
-    if (currentChunk) {
-      chunks.push(currentChunk);
-    }
-    
-    return chunks;
-  };
-  
-  // Process text chunks one by one
-  const processTextChunk = (chunks: string[], index: number, messageIndex: number) => {
-    // Stop if we've reached the end or speaking has been stopped
-    if (index >= chunks.length || speakingIndex !== messageIndex) {
-      if (index >= chunks.length) {
-        console.log("Finished speaking all chunks");
-        setSpeakingIndex(null);
-      }
-      return;
-    }
-    
-    const chunk = chunks[index];
-    const utterance = new SpeechSynthesisUtterance(chunk);
-    
-    // Important for mobile Safari: set these properties before setting voice
-    utterance.volume = 1.0;  // Full volume
-    utterance.rate = 0.9;    // Slightly slower
-    utterance.pitch = 1.1;   // Slightly higher pitch
-    
-    // Use our cached voices if available
-    const voices = availableVoices.length > 0 
-      ? availableVoices 
-      : window.speechSynthesis.getVoices();
-      
-    // First try to find a good English voice
-    let preferredVoice = voices.find(
-      voice => 
-        (voice.name.includes("female") || 
-         voice.name.includes("girl") || 
-         voice.name.includes("Female") ||
-         voice.name.toLowerCase().includes("samantha")) && 
-        voice.lang.includes("en")
-    );
-    
-    // If no preferred voice found, try any English voice
-    if (!preferredVoice) {
-      preferredVoice = voices.find(voice => voice.lang.includes("en"));
-    }
-    
-    // If still no voice, use the first voice available
-    if (preferredVoice) {
-      utterance.voice = preferredVoice;
-    } else if (voices.length > 0) {
-      utterance.voice = voices[0];
-    }
-    
-    // When this chunk ends, process the next one
-    utterance.onend = () => {
-      // Add a small delay between chunks for more natural pauses
-      setTimeout(() => {
-        processTextChunk(chunks, index + 1, messageIndex);
-      }, 300);
-    };
-    
-    // Handle errors
-    utterance.onerror = (event) => {
-      console.error("Speech synthesis error for chunk:", event);
-      // Try to continue with next chunk despite error
-      setTimeout(() => {
-        processTextChunk(chunks, index + 1, messageIndex);
-      }, 500);
-    };
-    
-    // Ensure browser compatibility with a small delay
-    setTimeout(() => {
-      try {
-        // Chrome/Firefox sometimes need this to be called again
-        if (audioContext.current && audioContext.current.state === 'suspended') {
-          audioContext.current.resume();
-        }
-        
-        window.speechSynthesis.speak(utterance);
-        console.log(`Speaking chunk ${index + 1} of ${chunks.length}`);
-      } catch (error) {
-        console.error("Error starting speech:", error);
-        // Try the next chunk anyway
-        processTextChunk(chunks, index + 1, messageIndex);
-      }
-    }, 100);
-  };
-
-  // Reset speech synthesis on Chrome bug (stops after ~15 seconds)
+  // Fix for Chrome bug where speech stops after ~15 seconds
   useEffect(() => {
     if (!window.speechSynthesis) return;
     
-    // Chrome bug fix: speech stops after about 15 seconds
     const intervalId = setInterval(() => {
       if (speakingIndex !== null) {
         window.speechSynthesis.pause();
@@ -676,6 +97,227 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
       window.speechSynthesis.cancel();
     };
   }, [speakingIndex]);
+
+  // Function to split long text into chunks for better speech synthesis
+  const splitTextIntoChunks = (text: string): string[] => {
+    const maxChunkLength = 200;
+    const chunks: string[] = [];
+    
+    // Clean up text by removing markdown
+    const cleanedText = text
+      .replace(/\*\*/g, '')
+      .replace(/\n---\n/g, ' ')
+      .replace(/#{1,6}\s/g, '');
+    
+    // Split by sentences
+    const sentences = cleanedText.split(/(?<=[.!?])\s+/);
+    let currentChunk = '';
+    
+    for (const sentence of sentences) {
+      if (currentChunk.length + sentence.length > maxChunkLength) {
+        if (currentChunk) {
+          chunks.push(currentChunk);
+        }
+        currentChunk = sentence;
+      } else {
+        currentChunk += (currentChunk ? ' ' : '') + sentence;
+      }
+    }
+    
+    if (currentChunk) {
+      chunks.push(currentChunk);
+    }
+    
+    console.log(`Split text into ${chunks.length} chunks for speech`);
+    return chunks;
+  };
+
+  // Process and speak text chunks one by one
+  const speakTextChunks = (chunks: string[], index = 0, messageIndex: number) => {
+    if (index >= chunks.length || speakingIndex !== messageIndex) {
+      if (index >= chunks.length) {
+        console.log("Finished speaking all chunks");
+        setSpeakingIndex(null);
+      }
+      return;
+    }
+    
+    const chunk = chunks[index];
+    const utterance = new SpeechSynthesisUtterance(chunk);
+    
+    // Set voice properties
+    utterance.volume = 1.0;
+    utterance.rate = 0.9;
+    utterance.pitch = 1.1;
+    
+    // Find a good voice
+    const voices = availableVoices.length > 0 
+      ? availableVoices 
+      : window.speechSynthesis.getVoices();
+    
+    // Try to find an English female voice first
+    const bestVoice = voices.find(voice => 
+      voice.lang === 'en-US' && 
+      (voice.name.includes('female') || voice.name.includes('Female'))
+    ) || voices.find(voice => 
+      voice.lang.startsWith('en')
+    );
+    
+    if (bestVoice) {
+      utterance.voice = bestVoice;
+    }
+    
+    // When chunk completes, speak the next one
+    utterance.onend = () => {
+      console.log(`Chunk ${index + 1}/${chunks.length} complete`);
+      // Add a small delay between chunks for more natural pauses
+      setTimeout(() => {
+        speakTextChunks(chunks, index + 1, messageIndex);
+      }, 300);
+    };
+    
+    // Handle errors
+    utterance.onerror = (event) => {
+      console.error("Speech synthesis error:", event);
+      // Try next chunk despite error
+      setTimeout(() => {
+        speakTextChunks(chunks, index + 1, messageIndex);
+      }, 500);
+    };
+    
+    console.log(`Speaking chunk ${index + 1}/${chunks.length}`);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  // Main function to start or stop speech synthesis
+  const speak = (text: string, index: number) => {
+    console.log("Text-to-speech requested");
+    
+    // If already speaking this message, stop it
+    if (speakingIndex === index) {
+      console.log("Stopping speech");
+      window.speechSynthesis.cancel();
+      setSpeakingIndex(null);
+      return;
+    }
+    
+    try {
+      // Clean up the text
+      const cleanedText = text
+        .replace(/\*\*/g, '')
+        .replace(/\n---\n/g, ' ')
+        .replace(/#{1,6}\s/g, '');
+      
+      // Set speaking state for UI feedback
+      setSpeakingIndex(index);
+      
+      // Show toast notification
+      toast({
+        title: "Story narration starting",
+        description: "The story will be read aloud now. Click 'Stop' to end narration.",
+      });
+      
+      // Cancel any ongoing speech
+      window.speechSynthesis.cancel();
+      
+      // Request the text to speak from the server
+      fetch('/api/text-to-speech/speak', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: cleanedText }),
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`Server response error: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          console.log("Server processed text:", data);
+          
+          // Get the processed text and speech settings
+          const textToSpeak = data.text || cleanedText;
+          
+          // For long text, split into chunks and speak sequentially
+          if (textToSpeak.length > 200) {
+            const chunks = splitTextIntoChunks(textToSpeak);
+            speakTextChunks(chunks, 0, index);
+          } else {
+            // For short text, speak directly
+            const utterance = new SpeechSynthesisUtterance(textToSpeak);
+            
+            // Apply speech settings
+            utterance.rate = 0.9;
+            utterance.pitch = 1.1;
+            utterance.volume = 1.0;
+            
+            // Find a good voice
+            const voices = availableVoices.length > 0 
+              ? availableVoices 
+              : window.speechSynthesis.getVoices();
+            
+            const bestVoice = voices.find(voice => 
+              voice.lang === 'en-US' && 
+              (voice.name.includes('female') || voice.name.includes('Female'))
+            ) || voices.find(voice => 
+              voice.lang.startsWith('en')
+            );
+            
+            if (bestVoice) {
+              utterance.voice = bestVoice;
+            }
+            
+            // Set up completion handler
+            utterance.onend = () => {
+              console.log("Speech completed");
+              setSpeakingIndex(null);
+            };
+            
+            utterance.onerror = (event) => {
+              console.error("Speech synthesis error:", event);
+              setSpeakingIndex(null);
+            };
+            
+            // Start speaking
+            window.speechSynthesis.speak(utterance);
+          }
+        })
+        .catch(error => {
+          console.error("Error with text-to-speech:", error);
+          
+          // Fallback: try direct browser synthesis
+          try {
+            const fallbackUtterance = new SpeechSynthesisUtterance(cleanedText);
+            fallbackUtterance.volume = 1.0;
+            fallbackUtterance.rate = 0.9;
+            
+            fallbackUtterance.onend = () => {
+              setSpeakingIndex(null);
+            };
+            
+            window.speechSynthesis.speak(fallbackUtterance);
+          } catch (speechError) {
+            console.error("Browser speech synthesis failed:", speechError);
+            setSpeakingIndex(null);
+            
+            toast({
+              title: "Speech error",
+              description: "There was an error starting the narration. Please try again.",
+              variant: "destructive"
+            });
+          }
+        });
+    } catch (error) {
+      console.error("Error initializing speech:", error);
+      setSpeakingIndex(null);
+      
+      toast({
+        title: "Speech error",
+        description: "There was an error starting the narration. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
 
   return (
     <ScrollArea 
@@ -717,8 +359,6 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
                   : "mr-3 bg-secondary bg-opacity-10 rounded-lg rounded-tr-none"
               } p-3 max-w-[85%] relative group`}
             >
-              {/* No conditional rendering here - removed */}
-              
               {message.role === "assistant" && (
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="text-sm font-bold text-primary">Story from SolanaStories</h3>
@@ -750,40 +390,42 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
                     const isTitle = idx === 0 && paragraph.length < 100;
                     
                     return (
-                      <p 
+                      <div 
                         key={idx} 
-                        className={`text-sm font-nunito ${
-                          isTitle ? "font-semibold mb-2" : "mt-2"
+                        className={`${
+                          isTitle ? "text-lg font-bold mb-4" : "text-sm font-nunito"
                         } ${idx === 0 ? "" : "mt-2"}`}
                       >
                         {paragraph}
-                      </p>
+                      </div>
                     );
                   })}
                 </>
               ) : (
                 <p className="text-sm font-nunito">{message.content}</p>
               )}
+              
+              {message.role === "user" && (
+                <div className="flex justify-end mb-1">
+                  <Avatar className="w-6 h-6 bg-secondary ml-2">
+                    <FaUser className="text-xs text-white" />
+                  </Avatar>
+                </div>
+              )}
             </div>
-            
-            {message.role === "user" && (
-              <Avatar className="w-8 h-8 bg-secondary">
-                <FaUser className="text-sm text-white" />
-              </Avatar>
-            )}
           </div>
         ))}
-
+        
         {isLoading && (
           <div className="flex items-start">
             <Avatar className="w-8 h-8 bg-primary">
               <FaRobot className="text-sm text-white" />
             </Avatar>
-            <div className="ml-3 bg-primary bg-opacity-10 rounded-lg rounded-tl-none p-3">
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-primary rounded-full typing-dot"></div>
-                <div className="w-2 h-2 bg-primary rounded-full typing-dot"></div>
-                <div className="w-2 h-2 bg-primary rounded-full typing-dot"></div>
+            <div className="ml-3 bg-primary bg-opacity-10 rounded-lg rounded-tl-none p-4 max-w-[85%]">
+              <div className="flex space-x-2">
+                <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }}></div>
+                <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }}></div>
+                <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "300ms" }}></div>
               </div>
             </div>
           </div>

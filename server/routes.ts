@@ -7,6 +7,11 @@ import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { knowledgeBase } from "./knowledgeBase";
 import { z } from "zod";
+import { exec } from 'child_process';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+import { v4 as uuidv4 } from 'uuid';
 
 // Create a schema for text-to-speech requests
 const ttsRequestSchema = z.object({
@@ -134,13 +139,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Actually generate speech using espeak
-      const { exec } = require('child_process');
-      const fs = require('fs');
-      const path = require('path');
-      const os = require('os');
-      const { v4: uuidv4 } = require('uuid');
-      
       // Create temp file names
       const tempDir = os.tmpdir();
       const tempTextFile = path.join(tempDir, `tts-text-${uuidv4()}.txt`);
@@ -152,45 +150,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate speech with espeak
       const command = `espeak -v en-us+f3 -s 130 -p 50 -a 200 -w ${tempWavFile} -f ${tempTextFile}`;
       
-      // Run the command and handle the response
-      exec(command, (error: any) => {
-        if (error) {
-          console.error("Error generating speech:", error);
-          // Delete temp files
-          try {
-            fs.unlinkSync(tempTextFile);
-          } catch (e) {
-            console.error("Failed to delete temp text file:", e);
-          }
-          
-          // Return fallback JSON if espeak fails
-          return res.json({
-            success: false,
-            message: "Server-side speech generation failed, use browser fallback",
-            text: limitedText,
-            speechSettings: {
-              rate: 0.9,
-              pitch: 1.1,
-              volume: 1.0,
+      // Create a promise to handle the async execution
+      const generateSpeech = new Promise<void>((resolve, reject) => {
+        exec(command, (error: any) => {
+          if (error) {
+            console.error("Error generating speech:", error);
+            // Delete temp files
+            try {
+              fs.unlinkSync(tempTextFile);
+            } catch (e) {
+              console.error("Failed to delete temp text file:", e);
             }
-          });
-        }
-        
-        // Read audio file
-        fs.readFile(tempWavFile, (err: any, data: Buffer) => {
-          // Delete the temp files regardless of success
-          try {
-            fs.unlinkSync(tempTextFile);
-            fs.unlinkSync(tempWavFile);
-          } catch (e) {
-            console.error("Failed to delete temp files:", e);
-          }
-          
-          if (err) {
-            console.error("Error reading audio file:", err);
-            return res.json({
+            
+            // Return fallback JSON if espeak fails
+            res.json({
               success: false,
-              message: "Failed to read audio file, use browser fallback",
+              message: "Server-side speech generation failed, use browser fallback",
               text: limitedText,
               speechSettings: {
                 rate: 0.9,
@@ -198,19 +173,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 volume: 1.0,
               }
             });
+            resolve();
+            return;
           }
           
-          // Set response headers for audio
-          res.setHeader('Content-Type', 'audio/wav');
-          res.setHeader('Content-Length', data.length);
-          res.setHeader('Cache-Control', 'no-cache');
-          
-          // Return the audio data
-          return res.send(data);
+          // Read audio file
+          fs.readFile(tempWavFile, (err: any, data: Buffer) => {
+            // Delete the temp files regardless of success
+            try {
+              fs.unlinkSync(tempTextFile);
+              fs.unlinkSync(tempWavFile);
+            } catch (e) {
+              console.error("Failed to delete temp files:", e);
+            }
+            
+            if (err) {
+              console.error("Error reading audio file:", err);
+              res.json({
+                success: false,
+                message: "Failed to read audio file, use browser fallback",
+                text: limitedText,
+                speechSettings: {
+                  rate: 0.9,
+                  pitch: 1.1,
+                  volume: 1.0,
+                }
+              });
+              resolve();
+              return;
+            }
+            
+            // Set response headers for audio
+            res.setHeader('Content-Type', 'audio/wav');
+            res.setHeader('Content-Length', data.length);
+            res.setHeader('Cache-Control', 'no-cache');
+            
+            // Return the audio data
+            res.send(data);
+            resolve();
+          });
         });
       });
       
-      // End of server-side generation
+      // Wait for the speech generation to complete
+      await generateSpeech;
     } catch (error) {
       console.error("Error in text-to-speech API:", error);
       

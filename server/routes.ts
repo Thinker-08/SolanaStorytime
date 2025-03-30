@@ -1,3 +1,7 @@
+import _ from "lodash";
+import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
+import bcrypt from "bcrypt";
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
@@ -11,12 +15,25 @@ import { exec } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4, validate } from 'uuid';
+dotenv.config();
+
+const JWT_SECRET = process.env.JWT_SECRET || 'SECRET_KEY_FOR_PROJECT_SOLANASTORIES'
 
 // Create a schema for text-to-speech requests
 const ttsRequestSchema = z.object({
   text: z.string().min(1),
 });
+
+const validateEmail = (email: string): boolean => {
+  const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  return regex.test(email);
+};
+
+const validatePhone = (phone: string): boolean => {
+  const regex = /^\d{10}$/;
+  return regex.test(phone);
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize knowledge base
@@ -229,6 +246,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ 
         message: error instanceof Error ? error.message : "Failed to process text-to-speech request"
       });
+    }
+  });
+
+  app.post("/api/signup", async (req: Request, res: Response) => {
+    try {
+      const userName = _.get(req, "body.username", '');
+      const password = _.get(req, "body.password", '');
+      const email = _.get(req, "body.email", '');
+      const phone = _.get(req, "body.phone", '');
+      // Validate request body
+
+      if (!validateEmail(email)) {
+        return res.status(400).json({ message: "Invalid email address" });
+      }
+      const alreadyExists = await storage.getUserByEmail(email);
+
+      if (alreadyExists) {
+        return res.status(400).json({ message: "Email already exists" });
+      }
+
+      if (phone && !validatePhone(phone)) {
+        return res.status(400).json({ message: "Invalid phone number" });
+      }
+
+      if (userName.length < 1) {
+        return res.status(400).json({ message: "Username is required" });
+      }
+
+      if (password.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters" });
+      }
+      
+      const saltRounds = 10; // Recommended number of rounds
+      const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+      const user = await storage.createUser({
+        username: userName,
+        password: hashedPassword,
+        email,
+        phone,
+      });
+
+      console.log(user);
+      const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: "30d" });
+      return res.status(200).json({ token });
+    } catch (error) {
+      console.error("Error in signup API:", error);
+      return res.status(500).json({ message: "Failed to sign up" });
+    }
+  });
+
+  app.post("/api/login", async (req: Request, res: Response) => {
+    try {
+      const email = _.get(req, "body.email", '');
+      const password = _.get(req, "body.password", '');
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(401).json({ message: "Invalid email" });
+      }
+      const isMatch = await bcrypt.compare(password, user.password);
+      if ( !isMatch ) {
+        return res.status(401).json({ message: "Invalid password" });
+      }
+      const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: "30d" });
+      return res.status(200).json({ token });
+    } catch (error) {
+      console.error("Error in login API:", error);
+      return res.status(500).json({ message: "Failed to log in" });
     }
   });
 

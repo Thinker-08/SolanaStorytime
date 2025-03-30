@@ -1,10 +1,13 @@
 import mongoose, { Document } from 'mongoose';
 import { User, Message } from '../shared/schema';  // Import your Mongoose models
-
+import dotenv from 'dotenv';
+dotenv.config();
 // Define types for User and Message documents
 export interface IUser extends Document {
   username: string;
   password: string;
+  email: string;
+  phone: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -38,16 +41,21 @@ export class MemStorage {
 
   // Get user by ID
   async getUser(id: string): Promise<IUser | null> {
-    return User.findById(id).exec();
+    return User.findById(id).lean<IUser>().exec();
   }
 
   // Get user by username
   async getUserByUsername(username: string): Promise<IUser | null> {
-    return User.findOne({ username }).exec();
+    return User.findOne({ username }).lean<IUser>().exec();
   }
 
   // Create a new user
-  async createUser(user: { username: string; password: string }): Promise<IUser> {
+  async createUser(user: {
+    username: string;
+    password: string;
+    email: string;
+    phone: string;
+  }): Promise<IUser> {
     const newUser = new User(user);
     return newUser.save();
   }
@@ -61,6 +69,10 @@ export class MemStorage {
   // Get all messages by sessionId
   async getMessagesBySessionId(sessionId: string): Promise<IMessage[]> {
     return Message.find({ sessionId }).exec();
+  }
+
+  async getUserByEmail(email: string): Promise<IUser | null> {
+    return User.findOne({ email }).lean<IUser>().exec();
   }
 }
 

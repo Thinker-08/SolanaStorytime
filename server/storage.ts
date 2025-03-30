@@ -1,60 +1,66 @@
-import { messages, type Message, type InsertMessage, users, type User, type InsertUser } from "@shared/schema";
+import mongoose, { Document } from 'mongoose';
+import { User, Message } from '../shared/schema';  // Import your Mongoose models
 
-// Interface for storage operations
-export interface IStorage {
-  getUser(id: number): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
-  
-  // Message methods
-  saveMessage(message: InsertMessage): Promise<Message>;
-  getMessagesBySessionId(sessionId: string): Promise<Message[]>;
+// Define types for User and Message documents
+export interface IUser extends Document {
+  username: string;
+  password: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private messages: Map<string, Message[]>;
-  private currentUserId: number;
-  private currentMessageId: number;
+export interface IMessage extends Document {
+  role: "user" | "assistant";
+  content: string;
+  sessionId: string;
+  createdAt: Date;   // Add timestamps
+  updatedAt: Date;    // Add timestamps
+}
 
+export class MemStorage {
   constructor() {
-    this.users = new Map();
-    this.messages = new Map();
-    this.currentUserId = 1;
-    this.currentMessageId = 1;
+    this.init();
   }
 
-  async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+  async init() {
+    try {
+      const URI = process.env.MONGODB_URI;
+      if (!URI) {
+        throw new Error('MONGODB_URI environment variable is not set');
+      }
+      await mongoose.connect(URI);
+      console.log('Connected to MongoDB');
+    } catch (error) {
+      console.error('Failed to initialize storage:', error);
+      throw error;
+    }
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+  // Get user by ID
+  async getUser(id: string): Promise<IUser | null> {
+    return User.findById(id).exec();
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentUserId++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+  // Get user by username
+  async getUserByUsername(username: string): Promise<IUser | null> {
+    return User.findOne({ username }).exec();
   }
 
-  async saveMessage(insertMessage: InsertMessage): Promise<Message> {
-    const id = this.currentMessageId++;
-    const createdAt = new Date();
-    const message: Message = { ...insertMessage, id, createdAt };
-    
-    const sessionMessages = this.messages.get(insertMessage.sessionId) || [];
-    sessionMessages.push(message);
-    this.messages.set(insertMessage.sessionId, sessionMessages);
-    
-    return message;
+  // Create a new user
+  async createUser(user: { username: string; password: string }): Promise<IUser> {
+    const newUser = new User(user);
+    return newUser.save();
   }
 
-  async getMessagesBySessionId(sessionId: string): Promise<Message[]> {
-    return this.messages.get(sessionId) || [];
+  // Save a message
+  async saveMessage(message: { role: "user" | "assistant"; content: string; sessionId: string }): Promise<IMessage> {
+    const newMessage = new Message(message);
+    return newMessage.save();
+  }
+
+  // Get all messages by sessionId
+  async getMessagesBySessionId(sessionId: string): Promise<IMessage[]> {
+    return Message.find({ sessionId }).exec();
   }
 }
 

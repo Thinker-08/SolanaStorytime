@@ -6,31 +6,77 @@ import { useToast } from "@/hooks/use-toast";
 import ChatHistory from "@/components/ChatHistory";
 import MessageInput from "@/components/MessageInput";
 import SamplePrompts from "@/components/SamplePrompts";
+import { jwtDecode } from "jwt-decode";
 
 type Message = {
   role: "user" | "assistant";
   content: string;
 };
 
+type TokenPayload = {
+  id: number;
+  email: string;
+  exp: number;
+};
+
 export default function Home() {
   const [sessionId, setSessionId] = useState<string>("");
   const [messages, setMessages] = useState<Message[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
   const { toast } = useToast();
+
+  const validateToken = () => {
+    const token = localStorage.getItem("authToken");
+
+    if (!token) {
+      console.log("No token found. Redirecting to login.");
+      window.location.href = "/";
+      return false;
+    }
+
+    try {
+      const decoded = jwtDecode<TokenPayload>(token);
+      // Check if token has required fields and is not expired
+      if (!decoded.id || !decoded.email || !decoded.exp) {
+        console.log("Invalid token format. Redirecting to login.");
+        window.location.href = "/";
+        return false;
+      }
+
+      const currentTime = Math.floor(Date.now() / 1000); // Current time in seconds
+      if (decoded.exp < currentTime) {
+        localStorage.removeItem("authToken");
+        window.location.href = "/";
+        return false;
+      }
+      return true;
+    } catch (error) {
+      localStorage.removeItem("authToken");
+      window.location.href = "/";
+      return false;
+    }
+  };
 
   // Initialize session and get welcome message
   useEffect(() => {
+    if (!validateToken()) return;
     const storedSessionId = localStorage.getItem("sessionId");
+    const token = localStorage.getItem("authToken");
+    const decoded = jwtDecode<TokenPayload>(token!);
+    const userId = decoded.id.toString();
+
     const newSessionId = storedSessionId || uuidv4();
     
     if (!storedSessionId) {
       localStorage.setItem("sessionId", newSessionId);
     }
-    
+
+    setUserId(userId);
     setSessionId(newSessionId);
   }, []);
 
   const { data, isLoading: isLoadingSession } = useQuery({
-    queryKey: [`/api/chat/session/${sessionId}`],
+    queryKey: [`/api/chat/session/${sessionId}/${userId}`],
     enabled: !!sessionId,
     refetchOnWindowFocus: false,
   });
@@ -45,7 +91,8 @@ export default function Home() {
     mutationFn: async (message: string) => {
       const response = await apiRequest("POST", "/api/chat/generate", {
         message,
-        sessionId
+        sessionId,
+        userId,
       });
       return response.json();
     },

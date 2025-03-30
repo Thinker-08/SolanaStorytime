@@ -42,11 +42,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // API routes
-  app.get("/api/chat/session/:sessionId", async (req: Request, res: Response) => {
+  app.get("/api/chat/session/:sessionId/:userId", async (req: Request, res: Response) => {
     try {
       const { sessionId } = req.params;
-      
-      if (!sessionId) {
+      let userId = parseInt(req.params.userId);
+      console.log(userId)
+      if (!sessionId || !userId) {
         return res.status(400).json({ message: "Session ID is required" });
       }
       
@@ -57,7 +58,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.saveMessage({
           role: "assistant",
           content: "Hello! I'm SolanaStories, a storytelling bot for children ages 5-10. I can create fun adventures that teach Solana blockchain concepts through magical tales! What kind of story would you like for your child today?",
-          sessionId
+          sessionId,
+          userId,
         });
       }
       
@@ -83,14 +85,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/chat/generate", async (req: Request, res: Response) => {
     try {
       // Validate request body
-      const validatedData = storyRequestSchema.parse(req.body);
-      const { message, sessionId } = validatedData;
+      const vetUserId = parseInt(req.body.userId);
+      const validatedData = storyRequestSchema.parse({ ...req.body, userId: vetUserId });
+      const { message, sessionId, userId } = validatedData;
       
       // Save user message
       await storage.saveMessage({
         role: "user",
         content: message,
-        sessionId
+        sessionId,
+        userId,
       });
       
       // Get conversation history
@@ -109,7 +113,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.saveMessage({
         role: "assistant",
         content: storyResponse,
-        sessionId
+        sessionId,
+        userId,
       });
       
       return res.json({
@@ -289,7 +294,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       console.log(user);
-      const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: "30d" });
+      const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: "30d" });
       return res.status(200).json({ token });
     } catch (error) {
       console.error("Error in signup API:", error);
@@ -312,7 +317,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if ( !isMatch ) {
         return res.status(401).json({ message: "Invalid password" });
       }
-      const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: "30d" });
+      const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: "30d" });
       return res.status(200).json({ token });
     } catch (error) {
       console.error("Error in login API:", error);

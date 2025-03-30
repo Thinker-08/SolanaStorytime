@@ -1,5 +1,5 @@
 import mongoose, { Document } from 'mongoose';
-import { User, Message } from '../shared/schema';  // Import your Mongoose models
+import { User, Message } from '../shared/schema';
 import dotenv from 'dotenv';
 dotenv.config();
 // Define types for User and Message documents
@@ -16,6 +16,7 @@ export interface IMessage extends Document {
   role: "user" | "assistant";
   content: string;
   sessionId: string;
+  userId: number;
   createdAt: Date;   // Add timestamps
   updatedAt: Date;    // Add timestamps
 }
@@ -49,26 +50,44 @@ export class MemStorage {
     return User.findOne({ username }).lean<IUser>().exec();
   }
 
-  // Create a new user
-  async createUser(user: {
-    username: string;
-    password: string;
-    email: string;
-    phone: string;
-  }): Promise<IUser> {
-    const newUser = new User(user);
+// Create a new user with auto-incremented ID
+async createUser(user: {
+  username: string;
+  password: string;
+  email: string;
+  phone: string;
+}): Promise<IUser> {
+  try {
+    const latestUser = await User.findOne().sort({ id: -1 });
+    const newId = latestUser ? latestUser.id + 1 : 1;
+    const newUser = new User({
+      id: newId,         
+      ...user,            
+    });
+
+    // Save the user
     return newUser.save();
+  } catch (error) {
+    console.error("Error creating user:", error);
+    throw error;
   }
+}
+
 
   // Save a message
-  async saveMessage(message: { role: "user" | "assistant"; content: string; sessionId: string }): Promise<IMessage> {
+  async saveMessage(message:
+    { role: "user" | "assistant";
+      content: string;
+      sessionId: string;
+      userId: number;
+    }): Promise<IMessage> {
     const newMessage = new Message(message);
     return newMessage.save();
   }
 
   // Get all messages by sessionId
   async getMessagesBySessionId(sessionId: string): Promise<IMessage[]> {
-    return Message.find({ sessionId }).exec();
+    return Message.find({ sessionId }).lean<IMessage[]>().exec();
   }
 
   async getUserByEmail(email: string): Promise<IUser | null> {

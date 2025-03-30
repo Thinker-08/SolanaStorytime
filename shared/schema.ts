@@ -3,6 +3,11 @@ import { z } from "zod";
 
 // === USERS SCHEMA ===
 const userSchema = new mongoose.Schema({
+  id: {
+    type: Number,
+    required: true,
+    unique: true,
+  },
   username: {
     type: String,
     required: true,
@@ -54,7 +59,12 @@ const messageSchema = new mongoose.Schema({
   sessionId: {
     type: String,
     required: true
-  }
+  },
+  userId: {
+    type: Number,
+    required: true,
+    ref: "User",
+  },
 }, { timestamps: true });
 
 export const Message = mongoose.model('Message', messageSchema);
@@ -71,6 +81,7 @@ export type MessageType = mongoose.Document & {
   role: "user" | "assistant";
   content: string;
   sessionId: string;
+  userId: number;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -89,7 +100,8 @@ export type ChatSession = z.infer<typeof chatSessionSchema>;
 // === STORY REQUEST SCHEMA ===
 export const storyRequestSchema = z.object({
   message: z.string().min(1, "Message cannot be empty"),
-  sessionId: z.string().min(1, "Session ID cannot be empty")
+  sessionId: z.string().min(1, "Session ID cannot be empty"),
+  userId: z.number().min(1, "User ID must be a positive number"),
 });
 
 export type StoryRequest = z.infer<typeof storyRequestSchema>;

@@ -17,7 +17,7 @@ import * as path from 'path';
 import * as os from 'os';
 import { v4 as uuidv4, validate } from 'uuid';
 dotenv.config();
-
+console.log("test")
 const JWT_SECRET = process.env.JWT_SECRET || 'SECRET_KEY_FOR_PROJECT_SOLANASTORIES'
 
 // Create a schema for text-to-speech requests

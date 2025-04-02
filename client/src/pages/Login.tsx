@@ -25,7 +25,7 @@ export default function AuthForm() {
 
     // Redirect to home if the token exists
     if (authToken) {
-      window.location.href = "/";  // Navigate to home page
+      window.location.href = "/home";
     }
   }, []);
 

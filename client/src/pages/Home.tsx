@@ -22,7 +22,7 @@ type TokenPayload = {
 export default function Home() {
   const [sessionId, setSessionId] = useState<string>("");
   const [messages, setMessages] = useState<Message[]>([]);
-  const [userId, setUserId] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const { toast } = useToast();
 
   const validateToken = () => {
@@ -62,8 +62,6 @@ export default function Home() {
     if (!validateToken()) return;
     const storedSessionId = localStorage.getItem("sessionId");
     const token = localStorage.getItem("authToken");
-    const decoded = jwtDecode<TokenPayload>(token!);
-    const userId = decoded.id.toString();
 
     const newSessionId = storedSessionId || uuidv4();
     
@@ -71,12 +69,25 @@ export default function Home() {
       localStorage.setItem("sessionId", newSessionId);
     }
 
-    setUserId(userId);
+    setToken(token);
     setSessionId(newSessionId);
   }, []);
 
   const { data, isLoading: isLoadingSession } = useQuery({
-    queryKey: [`/api/chat/session/${sessionId}/${userId}`],
+    queryKey: [`/api/chat/session/${sessionId}`],
+    queryFn: async () => {
+      const response = await fetch(`/api/chat/session/${sessionId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+  
+      if (!response.ok) {
+        throw new Error("Failed to fetch session data");
+      }
+  
+      return response.json();
+    },
     enabled: !!sessionId,
     refetchOnWindowFocus: false,
   });
@@ -92,7 +103,8 @@ export default function Home() {
       const response = await apiRequest("POST", "/api/chat/generate", {
         message,
         sessionId,
-        userId,
+      }, {
+        Authorization: `Bearer ${token}`,
       });
       return response.json();
     },

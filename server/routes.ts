@@ -1,8 +1,10 @@
 import _ from "lodash";
 import jwt from "jsonwebtoken";
+import { jwtDecode } from "jwt-decode";
 import dotenv from "dotenv";
 import bcrypt from "bcrypt";
-import type { Express, Request, Response } from "express";
+import { ElevenLabsClient } from "elevenlabs";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { storyRequestSchema, chatSessionSchema } from "@shared/schema";
@@ -11,13 +13,22 @@ import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { knowledgeBase } from "./knowledgeBase";
 import { z } from "zod";
-import { exec } from 'child_process';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
-import { v4 as uuidv4, validate } from 'uuid';
+
 dotenv.config();
-console.log("test")
+const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || "sk_9948ca82b777baf06144ad33ce6bd7c550433eea212c98b2";
+const client = new ElevenLabsClient({
+  apiKey: ELEVENLABS_API_KEY
+});
+type TokenPayload = {
+  id: number;
+  email: string;
+  exp: number;
+};
+
+interface AuthRequest extends Request {
+  userId?: number;
+}
+
 const JWT_SECRET = process.env.JWT_SECRET || 'SECRET_KEY_FOR_PROJECT_SOLANASTORIES'
 
 // Create a schema for text-to-speech requests
@@ -41,11 +52,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.error("Failed to initialize knowledge base:", err);
   });
 
+  const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => {
+    const authHeader = req.headers.authorization;
+  
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ message: "Unauthorized: Missing or invalid token" });
+    }
+  
+    const token = authHeader.split(" ")[1]; // Extract the token
+  
+    try {
+      req.userId = verifyToken(token);
+      next();
+    } catch (error) {
+      return res.status(403).json({ message: "Unauthorized: Invalid token" });
+    }
+  };
+
+  const verifyToken = (token: string): number => {
+    const decodedValue = jwtDecode<TokenPayload>(token);
+    if (!decodedValue || !decodedValue.id) {
+      throw new Error("Invalid token");
+    }
+    return decodedValue.id;
+  };
+
   // API routes
-  app.get("/api/chat/session/:sessionId/:userId", async (req: Request, res: Response) => {
+  app.get("/api/chat/session/:sessionId", authMiddleware, async (req: AuthRequest, res: Response) => {
     try {
       const { sessionId } = req.params;
-      let userId = parseInt(req.params.userId);
+      const userId = req.userId
       console.log(userId)
       if (!sessionId || !userId) {
         return res.status(400).json({ message: "Session ID is required" });
@@ -82,10 +118,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/chat/generate", async (req: Request, res: Response) => {
+  app.post("/api/chat/generate", authMiddleware, async (req: AuthRequest, res: Response) => {
     try {
       // Validate request body
-      const vetUserId = parseInt(req.body.userId);
+      const vetUserId = req.userId;
       const validatedData = storyRequestSchema.parse({ ...req.body, userId: vetUserId });
       const { message, sessionId, userId } = validatedData;
       
@@ -140,119 +176,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate request body
       const validatedData = ttsRequestSchema.parse(req.body);
       const { text } = validatedData;
-      
+  
       // Only process a limited amount of text
       const limitedText = text.substring(0, 5000); // Limit very long texts
-      
+  
       // Check for browser fallback mode parameter
-      const useBrowserFallback = req.query.fallback === 'true';
-      
+      const useBrowserFallback = req.query.fallback === "true";
+  
       if (useBrowserFallback) {
-        // Return JSON with instructions for the client to use native speech synthesis
         return res.json({
           success: true,
           message: "Use the browser's speech synthesis API",
           text: limitedText,
           speechSettings: {
-            rate: 1.1,    // Slightly faster for child-like speech
-            pitch: 1.4,   // Higher pitch for child-like voice
-            volume: 1.0,  // Full volume
-          }
+            rate: 1.1,
+            pitch: 1.4,
+            volume: 1.0,
+          },
         });
       }
-      
-      // Create temp file names
-      const tempDir = os.tmpdir();
-      const tempTextFile = path.join(tempDir, `tts-text-${uuidv4()}.txt`);
-      const tempWavFile = path.join(tempDir, `tts-audio-${uuidv4()}.wav`);
-      
-      // Write text to a temporary file to avoid command line issues with quotes, etc.
-      fs.writeFileSync(tempTextFile, limitedText);
-      
-      // Generate speech with espeak using a more child-friendly voice
-      // Higher pitch and speed for a younger voice effect
-      const command = `espeak -v en+f3 -s 150 -p 70 -a 200 -w ${tempWavFile} -f ${tempTextFile}`;
-      
-      // Create a promise to handle the async execution
-      const generateSpeech = new Promise<void>((resolve, reject) => {
-        exec(command, (error: any) => {
-          if (error) {
-            console.error("Error generating speech:", error);
-            // Delete temp files
-            try {
-              fs.unlinkSync(tempTextFile);
-            } catch (e) {
-              console.error("Failed to delete temp text file:", e);
-            }
-            
-            // Return fallback JSON if espeak fails
-            res.json({
-              success: false,
-              message: "Server-side speech generation failed, use browser fallback",
-              text: limitedText,
-              speechSettings: {
-                rate: 1.1,    // Slightly faster for child-like speech
-                pitch: 1.4,   // Higher pitch for child-like voice
-                volume: 1.0,  // Full volume
-              }
-            });
-            resolve();
-            return;
-          }
-          
-          // Read audio file
-          fs.readFile(tempWavFile, (err: any, data: Buffer) => {
-            // Delete the temp files regardless of success
-            try {
-              fs.unlinkSync(tempTextFile);
-              fs.unlinkSync(tempWavFile);
-            } catch (e) {
-              console.error("Failed to delete temp files:", e);
-            }
-            
-            if (err) {
-              console.error("Error reading audio file:", err);
-              res.json({
-                success: false,
-                message: "Failed to read audio file, use browser fallback",
-                text: limitedText,
-                speechSettings: {
-                  rate: 1.1,    // Slightly faster for child-like speech
-                  pitch: 1.4,   // Higher pitch for child-like voice
-                  volume: 1.0,  // Full volume
-                }
-              });
-              resolve();
-              return;
-            }
-            
-            // Set response headers for audio
-            res.setHeader('Content-Type', 'audio/wav');
-            res.setHeader('Content-Length', data.length);
-            res.setHeader('Cache-Control', 'no-cache');
-            
-            // Return the audio data
-            res.send(data);
-            resolve();
-          });
-        });
+  
+      // Generate speech with ElevenLabs
+      const audioStream = await client.textToSpeech.convert("jBpfuIE2acCO8z3wKNLl", {
+        text: limitedText,
+        model_id: "eleven_multilingual_v2",
+        output_format: "mp3_44100_128",
       });
-      
-      // Wait for the speech generation to complete
-      await generateSpeech;
+  
+      // Set response headers for audio
+      res.setHeader("Content-Type", "audio/mpeg");
+      res.setHeader("Cache-Control", "no-cache");
+  
+      // Pipe the audio stream directly to the response
+      audioStream.pipe(res);
     } catch (error) {
       console.error("Error in text-to-speech API:", error);
-      
+  
       if (error instanceof ZodError) {
         const validationError = fromZodError(error);
         return res.status(400).json({ message: validationError.message });
       }
-      
-      return res.status(500).json({ 
-        message: error instanceof Error ? error.message : "Failed to process text-to-speech request"
+  
+      return res.status(500).json({
+        message: error instanceof Error ? error.message : "Failed to process text-to-speech request",
       });
     }
   });
+  
 
   app.post("/api/signup", async (req: Request, res: Response) => {
     try {

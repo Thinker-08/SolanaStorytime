@@ -69,6 +69,25 @@ const messageSchema = new mongoose.Schema({
 
 export const Message = mongoose.model('Message', messageSchema);
 
+// === STORIES SCHEMA ===
+const storySchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: true,
+    unique: true
+  },
+  description: {
+    type: String,
+    required: true
+  },
+  createdAt: {
+    type: Date,
+    required: true,
+    default: Date.now
+  }
+}, { timestamps: true });
+
+export const Stories = mongoose.model('Stories', storySchema);
 // Zod schema for inserting messages
 export const insertMessageSchema = z.object({
   role: z.enum(["user", "assistant"]),

@@ -1,5 +1,5 @@
 import mongoose, { Document } from 'mongoose';
-import { User, Message } from '../shared/schema';
+import { User, Message, Stories } from '../shared/schema';
 import dotenv from 'dotenv';
 dotenv.config();
 // Define types for User and Message documents
@@ -92,6 +92,50 @@ async createUser(user: {
 
   async getUserByEmail(email: string): Promise<IUser | null> {
     return User.findOne({ email }).lean<IUser>().exec();
+  }
+
+  async getChatHistory(userId: number, page: number, perPage: number): Promise<any[]> {
+    const skip = (page - 1) * perPage;
+  
+    const history = await Message.aggregate([
+      { $match: { userId: Number(userId) } },
+      {
+        $group: {
+          _id: "$sessionId",
+          userId: { $first: "$userId" },
+          sessionId: { $first: "$sessionId" },
+          messages: {
+            $push: {
+              _id: "$_id",
+              role: "$role",
+              content: "$content",
+              createdAt: "$createdAt",
+              updatedAt: "$updatedAt",
+            },
+          },
+          latestMessageTime: { $max: "$createdAt" },
+        },
+      },
+      { $sort: { latestMessageTime: -1 } },
+      { $skip: skip },
+      { $limit: perPage },
+    ]);
+  
+    return history;
+  }
+  
+  
+  async getChatHistoryCount(userId: number): Promise<number> {
+    const result = await Message.aggregate([
+      { $match: { userId: Number(userId) } },
+      { $group: { _id: "$sessionId" } },
+      { $count: "total" }
+    ]);
+  
+    return result[0]?.total || 0;
+  }
+  async getAllLibraryStories(): Promise<[]> {
+    return Stories.find({}).lean<[]>().exec();
   }
 }
 

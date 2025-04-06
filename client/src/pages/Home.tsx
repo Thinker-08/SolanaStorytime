@@ -90,6 +90,14 @@ export default function Home() {
     SpeechSynthesisVoice[]
   >([]);
 
+  // --- Session Parameters Dialog State ---
+  const [sessionParams, setSessionParams] = useState<{
+    storyType: string;
+  } | null>(null);
+  const [isSessionParamsDialogOpen, setIsSessionParamsDialogOpen] =
+    useState(false);
+  const [storyType, setStoryType] = useState("");
+
   const { toast } = useToast();
   const taskPaneRef = useRef<HTMLDivElement>(null);
 
@@ -187,6 +195,23 @@ export default function Home() {
     };
   }, [isTaskPaneOpen]);
 
+  useEffect(() => {
+    // Only run when token and sessionId are available.
+    if (!token || !sessionId) return;
+
+    // If sessionParams is already set in state, don't open the dialog.
+    if (sessionParams !== null) return;
+
+    // Check localStorage for saved session parameters.
+    const storedParams = localStorage.getItem("sessionParams");
+    if (storedParams) {
+      setSessionParams(JSON.parse(storedParams));
+      setIsSessionParamsDialogOpen(false);
+    } else {
+      setIsSessionParamsDialogOpen(true);
+    }
+  }, [token, sessionId, sessionParams]);
+
   const { data, isLoading: isLoadingSession } = useQuery({
     queryKey: [`/api/chat/session/${sessionId}`],
     queryFn: async () => {
@@ -218,7 +243,7 @@ export default function Home() {
         "POST",
         "/api/chat/generate",
         {
-          message,
+          message: message,
           sessionId,
         },
         {
@@ -245,7 +270,13 @@ export default function Home() {
     },
   });
 
-  const handleSendMessage = async (message: string) => {
+useEffect(() => {
+  if (sessionParams && sessionParams.storyType) {
+    handleSendMessage(storyType, true);
+  }
+}, [sessionParams]);
+
+  const handleSendMessage = async (message: string, defaultStory = false) => {
     if (!message.trim()) return;
 
     // Add user message to chat
@@ -258,6 +289,9 @@ export default function Home() {
     ]);
 
     // Generate story response
+    if (defaultStory) {
+      message = `Generate a story with a solana concept and a ${storyType} theme.`;
+    }
     storyMutation.mutate(message);
   };
 
@@ -270,6 +304,8 @@ export default function Home() {
     setToken(null);
     setUserName("");
     setSessionId("");
+    setSessionParams(null);
+    localStorage.removeItem("sessionParams");
     localStorage.removeItem("sessionId");
     window.location.href = "/";
   };
@@ -721,45 +757,45 @@ export default function Home() {
               {selectedItemId && (
                 <div className="mb-4 max-h-60 overflow-y-auto pr-2">
                   <div className="flex justify-between items-center mb-2">
-                  <button
-                    className="text-sm text-primary underline mb-2"
-                    onClick={() => setSelectedItemId(null)}
-                  >
-                    ← Back to list
-                  </button>
-                  <Button
-                    onClick={() => {
-                      const foundItem = items.find(
-                        (item) => item.id === selectedItemId
-                      );
-                      if (foundItem) {
-                        const itemIndex = items.indexOf(foundItem);
-                        speak(foundItem.description, itemIndex);
-                      }
-                    }}
-                    variant="outline"
-                    size="sm"
-                    className={`h-8 px-3 py-1 rounded-md ${
-                      // Compute the index for the current selected item and compare it with speakingIndex
-                      speakingIndex ===
-                      items.findIndex((item) => item.id === selectedItemId)
-                        ? "speaking-active"
-                        : "bg-primary text-white hover:bg-opacity-90"
-                    } border-none shadow-md`}
-                  >
-                    {speakingIndex ===
-                    items.findIndex((item) => item.id === selectedItemId) ? (
-                      <div className="flex items-center">
-                        <VolumeX className="h-4 w-4 mr-1" />
-                        <span>Stop</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center">
-                        <Volume2 className="h-4 w-4 mr-1" />
-                        <span>Listen</span>
-                      </div>
-                    )}
-                  </Button>
+                    <button
+                      className="text-sm text-primary underline mb-2"
+                      onClick={() => setSelectedItemId(null)}
+                    >
+                      ← Back to list
+                    </button>
+                    <Button
+                      onClick={() => {
+                        const foundItem = items.find(
+                          (item) => item.id === selectedItemId
+                        );
+                        if (foundItem) {
+                          const itemIndex = items.indexOf(foundItem);
+                          speak(foundItem.description, itemIndex);
+                        }
+                      }}
+                      variant="outline"
+                      size="sm"
+                      className={`h-8 px-3 py-1 rounded-md ${
+                        // Compute the index for the current selected item and compare it with speakingIndex
+                        speakingIndex ===
+                        items.findIndex((item) => item.id === selectedItemId)
+                          ? "speaking-active"
+                          : "bg-primary text-white hover:bg-opacity-90"
+                      } border-none shadow-md`}
+                    >
+                      {speakingIndex ===
+                      items.findIndex((item) => item.id === selectedItemId) ? (
+                        <div className="flex items-center">
+                          <VolumeX className="h-4 w-4 mr-1" />
+                          <span>Stop</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center">
+                          <Volume2 className="h-4 w-4 mr-1" />
+                          <span>Listen</span>
+                        </div>
+                      )}
+                    </Button>
                   </div>
                   <p className="text-sm text-muted-foreground whitespace-pre-line">
                     {
@@ -783,6 +819,76 @@ export default function Home() {
                   ))}
                 </ul>
               )}
+            </div>
+          </div>
+        )}
+        {isSessionParamsDialogOpen && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+            <div className="relative bg-background p-4 rounded shadow-lg w-80">
+              {/* Close Button */}
+              <button
+                onClick={() => setIsSessionParamsDialogOpen(false)}
+                aria-label="Close"
+                className="absolute top-2 right-2 p-1 text-muted-foreground hover:text-primary"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+
+              <h2 className="text-xl font-bold mb-4">Set Session Parameters</h2>
+
+              <label className="block text-sm text-muted-foreground mb-1">
+                Select Story Type
+              </label>
+              <select
+                className="border p-2 w-full mb-4 text-primary bg-background rounded"
+                value={storyType}
+                onChange={(e) => setStoryType(e.target.value)}
+              >
+                <option value="">-- Choose a Story --</option>
+                <option value="Frozen">Frozen</option>
+                <option value="Encanto">Encanto</option>
+                <option value="Minions / Despicable Me">
+                  Minions / Despicable Me
+                </option>
+                <option value="Spider-Man / Marvel Superheroes">
+                  Spider-Man / Marvel Superheroes
+                </option>
+                <option value="Paw Patrol">Paw Patrol</option>
+                <option value="Toy Story">Toy Story</option>
+                <option value="Moana">Moana</option>
+                <option value="The Little Mermaid">The Little Mermaid</option>
+                <option value="Peppa Pig">Peppa Pig</option>
+                <option value="Barbie">Barbie</option>
+              </select>
+
+              <div className="flex justify-end">
+                <Button
+                  onClick={() => {
+                    const params = { storyType };
+                    setSessionParams(params);
+                    localStorage.setItem(
+                      "sessionParams",
+                      JSON.stringify(params)
+                    );
+                    setIsSessionParamsDialogOpen(false);
+                  }}
+                >
+                  Submit
+                </Button>
+              </div>
             </div>
           </div>
         )}

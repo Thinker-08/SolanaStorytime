@@ -88,6 +88,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // API routes
 
+  app.get("/", (req, res) => res.send("Express on Vercel"));
+
   app.get(
     "/api/chat-history",
     authMiddleware,

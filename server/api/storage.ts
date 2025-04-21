@@ -1,5 +1,5 @@
 import mongoose, { Document } from 'mongoose';
-import { User, Message, Stories } from '../shared/schema';
+import { User, Message, Stories } from '../../shared/schema';
 import dotenv from 'dotenv';
 dotenv.config();
 // Define types for User and Message documents

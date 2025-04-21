@@ -42,7 +42,7 @@ export class KnowledgeBase {
 
     try {
       // Define paths to knowledge assets
-      const assetsPath = path.resolve(__dirname, '../attached_assets');
+      const assetsPath = path.resolve(__dirname, '../../attached_assets');
       
       // Load all knowledge files
       this.systemPrompt = await this.loadTextFile(path.join(assetsPath, 'system-prompt.txt'));

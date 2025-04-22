@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest } from "../lib/queryClient";
 import { v4 as uuidv4 } from "uuid";
-import { useToast } from "@/hooks/use-toast";
-import ChatHistory from "@/components/ChatHistory";
-import MessageInput from "@/components/MessageInput";
-import SamplePrompts from "@/components/SamplePrompts";
+import { useToast } from "../hooks/use-toast";
+import ChatHistory from "../components/ChatHistory";
+import MessageInput from "../components/MessageInput";
+import SamplePrompts from "../components/SamplePrompts";
 import { jwtDecode } from "jwt-decode";
-import TaskPane from "@/components/TaskPane";
+import TaskPane from "../components/TaskPane";
 import { useRef } from "react";
-import { useSession } from "@/context/SessionContext";
+import { useSession } from "../context/SessionContext";
 import {
   DropdownMenu,
   DropdownMenuContent,

@@ -30,17 +30,17 @@ export default defineConfig({
   },
   root: path.resolve(__dirname, "client"),
   build: {
-    outDir: path.resolve(__dirname, "dist/public"),
+    outDir: path.resolve(__dirname, "dist"),
     emptyOutDir: true,
   },
   server: {
-    port: 5173,                // Vite server port
+    port: 5173,
     proxy: {
       "/api": {
-        target: "http://localhost:9000/",  // Your Express server
+        target: "https://solana-storytime.vercel.app/",
         changeOrigin: true,
         secure: false,
-      }
-    }
-  }
+      },
+    },
+  },
 });

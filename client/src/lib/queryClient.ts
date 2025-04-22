@@ -13,7 +13,7 @@ export async function apiRequest(
   data?: unknown | undefined,
   header?: unknown | undefined,
 ): Promise<Response> {
-  const res = await fetch(url, {
+  const res = await fetch(`https://solana-storytime.vercel.app${url}`, {
     method,
     headers: header ? { ...header, "Content-Type": "application/json" } : { "Content-Type": "application/json" },
     body: data ? JSON.stringify(data) : undefined,

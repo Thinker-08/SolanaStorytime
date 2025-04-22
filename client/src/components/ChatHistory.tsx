@@ -1,10 +1,10 @@
 import { useRef, useEffect, useState } from "react";
-import { Avatar } from "@/components/ui/avatar";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar } from "../components/ui/avatar";
+import { ScrollArea } from "../components/ui/scroll-area";
 import { FaRobot, FaUser } from "react-icons/fa";
-import { Button } from "@/components/ui/button";
+import { Button } from "../components/ui/button";
 import { Volume2, VolumeX } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "../hooks/use-toast";
 
 interface Message {
   role: "user" | "assistant";

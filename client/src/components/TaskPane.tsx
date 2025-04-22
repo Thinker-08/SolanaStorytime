@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSession } from "@/context/SessionContext";
+import { useSession } from "../context/SessionContext";
 
 type Messages = {
   role: "user" | "assistant";

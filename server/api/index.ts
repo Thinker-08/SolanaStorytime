@@ -62,5 +62,6 @@ export default async function handler(
   res: VercelResponse
 ) {
   const app = await getApp();
+  req.url = req.url!.replace(/^\/api/, "") || "/";
   return app(req as any, res as any);
 }

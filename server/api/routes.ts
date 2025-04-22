@@ -91,7 +91,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/", (req, res) => res.send("Express on Vercel"));
 
   app.get(
-    "/api/chat-history",
+    "/chat-history",
     authMiddleware,
     async (req: AuthRequest, res: Response) => {
       const page = req.query.page || 1;
@@ -133,7 +133,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   );
 
   app.get(
-    "/api/chat/session/:sessionId",
+    "/chat/session/:sessionId",
     authMiddleware,
     async (req: AuthRequest, res: Response) => {
       try {
@@ -179,7 +179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   );
 
   app.post(
-    "/api/chat/generate",
+    "/chat/generate",
     authMiddleware,
     async (req: AuthRequest, res: Response) => {
       try {
@@ -239,7 +239,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   );
 
   // Text-to-Speech API endpoint - actual audio generation
-  app.post("/api/text-to-speech/speak", async (req: Request, res: Response) => {
+  app.post("/text-to-speech/speak", async (req: Request, res: Response) => {
     try {
       // Validate request body
       const validatedData = ttsRequestSchema.parse(req.body);
@@ -297,7 +297,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/signup", async (req: Request, res: Response) => {
+  app.post("/signup", async (req: Request, res: Response) => {
     try {
       const userName = _.get(req, "body.username", "");
       const password = _.get(req, "body.password", "");
@@ -349,7 +349,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/login", async (req: Request, res: Response) => {
+  app.post("/login", async (req: Request, res: Response) => {
     try {
       const email = _.get(req, "body.email", "");
       const password = _.get(req, "body.password", "");
@@ -376,7 +376,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/library-stories", authMiddleware, async (req: AuthRequest, res: Response) => {
+  app.get("/library-stories", authMiddleware, async (req: AuthRequest, res: Response) => {
     const userId = req.userId;
     if (!userId) {
       return res.status(401).json({ message: "Unauthorized" });

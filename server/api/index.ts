@@ -1,7 +1,7 @@
 import { VercelRequest, VercelResponse } from "@vercel/node";
 import express from "express";
 import cors from "cors";
-import { registerRoutes } from "./routes"; // adjust path if needed
+import { registerRoutes } from "./routes.js"; // adjust path if needed
 import type { Request, Response, NextFunction } from "express";
 
 // Cache the Express app across cold starts

@@ -1,78 +1,68 @@
-import express, { type Request, Response, NextFunction } from "express";
-import cors from 'cors';
-import { registerRoutes } from "./app/routes";
-import { setupVite, serveStatic, log } from "./app/vite";
-const app = express();
+import { VercelRequest, VercelResponse } from "@vercel/node";
+import express from "express";
+import cors from "cors";
+import { registerRoutes } from "./app/routes"; // adjust path if needed
+import type { Request, Response, NextFunction } from "express";
 
-app.use(cors({
-  origin: "*",
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true
-}));
-app.options("*", cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+// Cache the Express app across cold starts
+let cachedApp: express.Express | null = null;
 
-app.use((req, res, next) => {
-  const start = Date.now();
-  const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
+async function getApp() {
+  if (cachedApp) return cachedApp;
+  const app = express();
 
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
+  // CORS settings
+  app.use(
+    cors({
+      origin: "*",
+      methods: ["GET", "POST", "PUT", "DELETE"],
+      allowedHeaders: ["Content-Type", "Authorization"],
+      credentials: true,
+    })
+  );
+  app.options("*", cors());
 
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
+  // Body parsing
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: false }));
 
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
-      log(logLine);
-    }
+  // Logging middleware
+  app.use((req, res, next) => {
+    const start = Date.now();
+    const originalJson = res.json.bind(res);
+    let body: any;
+    res.json = (payload) => {
+      body = payload;
+      return originalJson(payload);
+    };
+    res.on("finish", () => {
+      const ms = Date.now() - start;
+      let line = `${req.method} ${req.url} ${res.statusCode} in ${ms}ms`;
+      if (body) line += ` :: ${JSON.stringify(body)}`;
+      console.log(line.length > 80 ? line.slice(0, 79) + "…" : line);
+    });
+    next();
   });
 
-  next();
-});
+  // Mount all routes from registerRoutes (no listen here)
+  await registerRoutes(app);
 
-(async () => {
-  const server = await registerRoutes(app);
-
+  // Error handler
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
-    throw err;
+    return res.status(status).json({ message: err.message || "Internal Server Error" });
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
-  }
+  cachedApp = app;
+  return app;
+}
 
-  // ALWAYS serve the app on port 9000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 9000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
-})();
+export default async function handler(
+  req: VercelRequest,
+  res: VercelResponse
+) {
+  const app = await getApp();
+  // Strip /api prefix so routes like "/chat-history" match
+  req.url = req.url!.replace(/^\/api/, "") || "/";
+  return app(req as any, res as any);
+}

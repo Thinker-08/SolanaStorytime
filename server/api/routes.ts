@@ -7,7 +7,7 @@ import { ElevenLabsClient } from "elevenlabs";
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage.js";
-import { storyRequestSchema, chatSessionSchema } from "@shared/schema";
+import { storyRequestSchema, chatSessionSchema } from "@shared/schema.js";
 import { generateStory } from "./openai.js";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";

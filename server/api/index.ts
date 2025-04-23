@@ -11,18 +11,21 @@ async function getApp() {
   if (cachedApp) return cachedApp;
   const app = express();
 
-  app.use(cors({
-    origin: (requestOrigin, callback) => {
-      // Allow requests from any origin by echoing it back:
+  // Unified CORS options for both actual and preflight requests
+  const corsOptions = {
+    origin: (requestOrigin: string | undefined, callback: (err: Error | null, allow?: boolean | string) => void) => {
+      // Echo back the request origin
       callback(null, requestOrigin);
     },
     credentials: true,
-    methods: ["GET","POST","PUT","DELETE","OPTIONS"],
-    allowedHeaders: ["Content-Type","Authorization"]
-  }));
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+  };
 
-  // Handle OPTIONS preflight requests
-  app.options("*", cors());
+  // Apply CORS for actual requests
+  app.use(cors(corsOptions));
+  // Apply CORS for preflight OPTIONS requests
+  app.options("*", cors(corsOptions));
 
   // Body parsing
   app.use(express.json());

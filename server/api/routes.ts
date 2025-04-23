@@ -179,7 +179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   );
 
   app.post(
-    "/chat/generate",
+    "/chat-generate",
     authMiddleware,
     async (req: AuthRequest, res: Response) => {
       try {

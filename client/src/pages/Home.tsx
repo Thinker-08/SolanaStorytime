@@ -241,7 +241,7 @@ export default function Home() {
     mutationFn: async (message: string) => {
       const response = await apiRequest(
         "POST",
-        "/api/chat/generate",
+        "/api/chat-generate",
         {
           message: message,
           sessionId,

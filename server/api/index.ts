@@ -11,15 +11,17 @@ async function getApp() {
   if (cachedApp) return cachedApp;
   const app = express();
 
-  // CORS settings
-  app.use(
-    cors({
-      origin: "*",
-      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "Authorization"],
-      credentials: true,
-    })
-  );
+  app.use(cors({
+    origin: (requestOrigin, callback) => {
+      // Allow requests from any origin by echoing it back:
+      callback(null, requestOrigin);
+    },
+    credentials: true,
+    methods: ["GET","POST","PUT","DELETE","OPTIONS"],
+    allowedHeaders: ["Content-Type","Authorization"]
+  }));
+
+  // Handle OPTIONS preflight requests
   app.options("*", cors());
 
   // Body parsing

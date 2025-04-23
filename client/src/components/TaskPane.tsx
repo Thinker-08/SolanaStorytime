@@ -25,7 +25,7 @@ export default function TaskPane({ token, onClose }: TaskPaneProps) {
     // Replace this with your actual fetch logic
     const fetchChatHistory = async () => {
       try {
-        const response = await fetch("/api/chat-history", {
+        const response = await fetch("https://solana-storytime.vercel.app/api/chat-history", {
           headers: { Authorization: `Bearer ${token}` },
         });
 

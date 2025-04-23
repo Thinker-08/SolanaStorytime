@@ -258,7 +258,7 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
         
         try {
           // Try client-side speech synthesis as fallback
-          fetch('/api/text-to-speech/speak?fallback=true', {
+          fetch('https://solana-storytime.vercel.app/api/text-to-speech/speak?fallback=true', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ text: cleanedText }),
@@ -341,7 +341,7 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
       console.log("Trying to play server-generated audio");
       
       // Start playing
-      fetch('/api/text-to-speech/speak', {
+      fetch('https://solana-storytime.vercel.app/api/text-to-speech/speak', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'audio/wav' },
         body: JSON.stringify({ text: cleanedText }),

@@ -215,7 +215,7 @@ export default function Home() {
   const { data, isLoading: isLoadingSession } = useQuery({
     queryKey: [`/api/chat/session/${sessionId}`],
     queryFn: async () => {
-      const response = await fetch(`/api/chat/session/${sessionId}`, {
+      const response = await fetch(`https://solana-storytime.vercel.app/api/chat/session/${sessionId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -437,7 +437,7 @@ useEffect(() => {
 
         try {
           // Try client-side speech synthesis as fallback
-          fetch("/api/text-to-speech/speak?fallback=true", {
+          fetch("https://solana-storytime.vercel.app/api/text-to-speech/speak?fallback=true", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ text: cleanedText }),
@@ -526,7 +526,7 @@ useEffect(() => {
       console.log("Trying to play server-generated audio");
 
       // Start playing
-      fetch("/api/text-to-speech/speak", {
+      fetch("https://solana-storytime.vercel.app/api/text-to-speech/speak", {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "audio/wav" },
         body: JSON.stringify({ text: cleanedText }),

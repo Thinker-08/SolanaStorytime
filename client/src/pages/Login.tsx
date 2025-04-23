@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { apiRequest } from "../lib/queryClient";
 import { useToast } from "../hooks/use-toast";
+import { useLocation } from "wouter";
 
 const extractErrorMessage = (error: any) => {
     try {
@@ -18,6 +19,7 @@ const extractErrorMessage = (error: any) => {
 
 export default function AuthForm() {
   const [isLogin, setIsLogin] = useState(true);
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -25,7 +27,7 @@ export default function AuthForm() {
 
     // Redirect to home if the token exists
     if (authToken) {
-      window.location.href = "/home";
+      setLocation("/home");
     }
   }, []);
 

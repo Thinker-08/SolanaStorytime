@@ -213,9 +213,9 @@ export default function Home() {
   }, [token, sessionId, sessionParams]);
 
   const { data, isLoading: isLoadingSession } = useQuery({
-    queryKey: [`/api/chat/session/${sessionId}`],
+    queryKey: [`/api/chat-session?sessionId=${sessionId}`],
     queryFn: async () => {
-      const response = await fetch(`https://solana-storytime.vercel.app/api/chat/session/${sessionId}`, {
+      const response = await fetch(`https://solana-storytime.vercel.app/api/chat-session?sessionId=${sessionId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -437,7 +437,7 @@ useEffect(() => {
 
         try {
           // Try client-side speech synthesis as fallback
-          fetch("https://solana-storytime.vercel.app/api/text-to-speech/speak?fallback=true", {
+          fetch("https://solana-storytime.vercel.app/api/text-to-speech-speak?fallback=true", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ text: cleanedText }),
@@ -519,14 +519,14 @@ useEffect(() => {
       unlockAudio();
 
       // Create an audio element for each request to avoid caching issues
-      audioElement.src = `/api/text-to-speech/speak?t=${Date.now()}`;
+      audioElement.src = `/api/text-to-speech-speak?t=${Date.now()}`;
       audioElement.crossOrigin = "anonymous"; // May help with CORS issues
 
       // First try direct audio playback from server
       console.log("Trying to play server-generated audio");
 
       // Start playing
-      fetch("https://solana-storytime.vercel.app/api/text-to-speech/speak", {
+      fetch("https://solana-storytime.vercel.app/api/text-to-speech-speak", {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "audio/wav" },
         body: JSON.stringify({ text: cleanedText }),

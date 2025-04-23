@@ -133,11 +133,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   );
 
   app.get(
-    "/chat/session/:sessionId",
+    "/chat-session",
     authMiddleware,
     async (req: AuthRequest, res: Response) => {
       try {
-        const { sessionId } = req.params;
+        const rawSession = req.query.sessionId;
+
+        // Narrow: if it's an array, pick the first element; if it's a ParsedQs, convert to string; else it’s undefined
+        const sessionId =
+        Array.isArray(rawSession)
+          ? rawSession[0]
+          : typeof rawSession === "string"
+          ? rawSession
+          : undefined;
         const userId = req.userId;
         if (!sessionId || !userId) {
           return res.status(400).json({ message: "Session ID is required" });
@@ -239,7 +247,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   );
 
   // Text-to-Speech API endpoint - actual audio generation
-  app.post("/text-to-speech/speak", async (req: Request, res: Response) => {
+  app.post("/text-to-speech-speak", async (req: Request, res: Response) => {
     try {
       // Validate request body
       const validatedData = ttsRequestSchema.parse(req.body);

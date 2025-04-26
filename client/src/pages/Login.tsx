@@ -1,21 +1,23 @@
+// AuthForm.tsx
 import { useEffect, useState } from "react";
+import { Sun, BookOpen, LogIn } from "lucide-react";                                       // :contentReference[oaicite:3]{index=3}
 import { apiRequest } from "../lib/queryClient";
 import { useToast } from "../hooks/use-toast";
 import { useLocation } from "wouter";
 
 const extractErrorMessage = (error: any) => {
-    try {
-      const parts = error.message.split(": ");
-      if (parts.length > 1) {
-        const jsonPart = parts.slice(1).join(": ").trim();
-        const parsed = JSON.parse(jsonPart);
-        return parsed.message || "An unexpected error occurred.";
-      }
-      return error.message || "An unexpected error occurred.";
-    } catch {
-      return "An unexpected error occurred.";
+  try {
+    const parts = error.message.split(": ");
+    if (parts.length > 1) {
+      const jsonPart = parts.slice(1).join(": ").trim();
+      const parsed = JSON.parse(jsonPart);
+      return parsed.message || "An unexpected error occurred.";
     }
-  };
+    return error.message || "An unexpected error occurred.";
+  } catch {
+    return "An unexpected error occurred.";
+  }
+};
 
 export default function AuthForm() {
   const [isLogin, setIsLogin] = useState(true);
@@ -24,11 +26,7 @@ export default function AuthForm() {
 
   useEffect(() => {
     const authToken = localStorage.getItem("authToken");
-
-    // Redirect to home if the token exists
-    if (authToken) {
-      setLocation("/home");
-    }
+    if (authToken) setLocation("/home");
   }, []);
 
   const toggleForm = () => setIsLogin((prev) => !prev);
@@ -37,175 +35,127 @@ export default function AuthForm() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
-    if (isLogin) {
-      // Login Form
-      const email = formData.get("email") as string;
-      const password = formData.get("password") as string;
+    // Common fields
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
 
-      if (!email || !password) {
+    if (!email || !password) {
+      toast({ title: "Missing Fields", description: "Please fill in all required fields.", variant: "destructive" });
+      return;
+    }
+
+    try {
+      const endpoint = isLogin ? "/api/login" : "/api/signup";
+      const body: any = { email, password };
+
+      if (!isLogin) {
+        const phone = formData.get("phone") as string;
+        const username = formData.get("username") as string;
+        if (!phone || !username) {
+          toast({ title: "Missing Fields", description: "Please fill in all required fields.", variant: "destructive" });
+          return;
+        }
+        body.phone = phone;
+        body.username = username;
+      }
+
+      const response = await apiRequest("POST", endpoint, body);
+      const data = await response.json();
+
+      if (!response.ok || !data.token) {
         toast({
-          title: "Missing Fields",
-          description: "Please enter both email and password.",
+          title: isLogin ? "Login Error" : "Signup Error",
+          description: data.message || extractErrorMessage(data) || "Something went wrong.",
           variant: "destructive",
         });
         return;
       }
 
-      try {
-        const response = await apiRequest('POST', '/api/login', { email, password });
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          toast({
-            title: "Login Error",
-            description: errorData.message || "Invalid credentials or server response.",
-            variant: "destructive",
-          });
-          return;
-        }
-        
-        const data = await response.json();
+      localStorage.setItem("authToken", data.token);
+      window.location.href = "/home";
 
-        if (data.token) {
-          localStorage.setItem("authToken", data.token);
-          window.location.href = "/home";
-        } else {
-          toast({
-            title: "Login Error",
-            description: "Invalid credentials or server response.",
-            variant: "destructive",
-          });
-        }
-      } catch (error: any) {
-        console.error("Error during login:", error);
-        toast({
-          title: "Login Error",
-          description: extractErrorMessage(error) || "An unexpected error occurred.",
-          variant: "destructive",
-        });
-      }
-
-    } else {
-      // Signup Form
-      const email = formData.get("email") as string;
-      const phone = formData.get("phone") as string;
-      const username = formData.get("username") as string;
-      const password = formData.get("password") as string;
-
-      if (!email || !phone || !username || !password) {
-        toast({
-          title: "Missing Fields",
-          description: "Please fill in all fields.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      try {
-        const response = await apiRequest('POST', '/api/signup', {
-          email,
-          phone,
-          username,
-          password,
-        });
-        if (!response.ok) {
-          const errorData = await response.json();
-          toast({
-            title: "Signup Error",
-            description: extractErrorMessage(errorData) || "Signup failed. Please try again.",
-            variant: "destructive",
-          });
-          return;
-        }
-        
-        const data = await response.json();
-
-        if (data.token) {
-          localStorage.setItem("authToken", data.token);
-          window.location.href = "/home";
-        } else {
-          toast({
-            title: "Signup Error",
-            description: "Signup failed. Please try again.",
-            variant: "destructive",
-          });
-        }
-      } catch (error: any) {
-        console.error("Error during signup:", extractErrorMessage(error));
-        toast({
-          title: "Signup Error",
-          description: extractErrorMessage(error) || "An unexpected error occurred.",
-          variant: "destructive",
-        });
-      }
+    } catch (error: any) {
+      toast({
+        title: isLogin ? "Login Error" : "Signup Error",
+        description: extractErrorMessage(error),
+        variant: "destructive",
+      });
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-6 text-center">
-          {isLogin ? "Login" : "Sign Up"}
-        </h2>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Common fields */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Email</label>
-            <input
-              type="email"
-              name="email"
-              required
-              className="mt-1 p-2 w-full border rounded-md text-gray-700"
-            />
+    <div className="flex flex-col min-h-screen bg-gradient-to-b from-gray-900 to-indigo-950 text-white p-6"> {/* :contentReference[oaicite:4]{index=4} */}
+      <div className="flex-1 flex flex-col items-center justify-center gap-8">
+        {/* Header & Icons */}
+        <div className="text-center">
+          <div className="mb-2 flex justify-center">
+            <div className="relative">
+              <Sun className="text-yellow-400 h-16 w-16 absolute -left-6 -top-6 opacity-70 animate-pulse" /> {/* :contentReference[oaicite:5]{index=5} */}
+              <div className="bg-gradient-to-br from-violet-500 to-blue-600 rounded-full p-4 shadow-lg shadow-violet-600/30">
+                <BookOpen className="h-14 w-14 text-white" />
+              </div>
+            </div>
           </div>
+          <h1 className="text-3xl font-bold mt-4 bg-gradient-to-r from-cyan-400 via-purple-500 to-blue-500 bg-clip-text text-transparent">
+            {isLogin ? "Login" : "Sign Up"}
+          </h1>
+          <p className="text-gray-300 mt-2">
+            {isLogin
+              ? "Welcome back! Enter your credentials to access your account."
+              : "Create a new account to get started."}
+          </p>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="w-full max-w-md space-y-4 mt-4">
+          <input
+            type="email"
+            name="email"
+            placeholder="Email"
+            required
+            className="w-full p-3 rounded-lg bg-gray-800 border border-indigo-700/50 text-white focus:outline-none focus:ring-2 focus:ring-violet-500 shadow-md"
+          /> {/* :contentReference[oaicite:6]{index=6} */}
 
           {!isLogin && (
             <>
-              {/* Signup-only fields */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Phone</label>
-                <input
-                  type="tel"
-                  name="phone"
-                  required
-                  className="mt-1 p-2 w-full border rounded-md text-gray-700"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Username</label>
-                <input
-                  type="text"
-                  name="username"
-                  required
-                  className="mt-1 p-2 w-full border rounded-md text-gray-700"
-                />
-              </div>
+              <input
+                type="tel"
+                name="phone"
+                placeholder="Phone"
+                required
+                className="w-full p-3 rounded-lg bg-gray-800 border border-indigo-700/50 text-white focus:outline-none focus:ring-2 focus:ring-violet-500 shadow-md"
+              />
+              <input
+                type="text"
+                name="username"
+                placeholder="Username"
+                required
+                className="w-full p-3 rounded-lg bg-gray-800 border border-indigo-700/50 text-white focus:outline-none focus:ring-2 focus:ring-violet-500 shadow-md"
+              />
             </>
           )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Password</label>
-            <input
-              type="password"
-              name="password"
-              required
-              className="mt-1 p-2 w-full border rounded-md text-gray-700"
-            />
-          </div>
+          <input
+            type="password"
+            name="password"
+            placeholder="Password"
+            required
+            className="w-full p-3 rounded-lg bg-gray-800 border border-indigo-700/50 text-white focus:outline-none focus:ring-2 focus:ring-violet-500 shadow-md"
+          />
 
           <button
             type="submit"
-            className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition"
+            className="w-full p-3 bg-gradient-to-r from-violet-600 to-blue-600 rounded-lg font-medium text-white flex items-center justify-center gap-2 shadow-lg shadow-violet-700/30"
           >
+            <LogIn size={18} />
             {isLogin ? "Login" : "Sign Up"}
           </button>
         </form>
 
-        <p className="mt-4 text-center text-sm">
+        {/* Toggle Link */}
+        <p className="text-gray-300 text-sm">
           {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
-          <button onClick={toggleForm} className="text-blue-500 hover:underline">
+          <button onClick={toggleForm} className="text-violet-400 hover:underline">
             {isLogin ? "Sign up" : "Login"}
           </button>
         </p>

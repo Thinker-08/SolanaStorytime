@@ -9,6 +9,8 @@ import SamplePrompts from "../components/SamplePrompts";
 import { jwtDecode } from "jwt-decode";
 import TaskPane from "../components/TaskPane";
 import { useSession } from "../context/SessionContext";
+import { ArrowLeft } from "lucide-react";
+import { useLocation } from "wouter";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -29,6 +31,7 @@ const getInitials = (name: string) => {
 };
 
 export default function Home() {
+  const [, navigate] = useLocation();
   const { sessionId, setSessionId } = useSession();
   const [messages, setMessages] = useState<Message[]>([]);
   const [token, setToken] = useState<string | null>(null);
@@ -217,6 +220,9 @@ export default function Home() {
         <header className="mb-6 text-center relative">
           {/* Left: Task Pane Button */}
           <div className="absolute top-0 left-0 p-2">
+          <button onClick={() => navigate("/home")} className="text-indigo-300 px-4">
+            <ArrowLeft className="h-6 w-6" />
+          </button>
             {!isTaskPaneOpen && (
               <button
                 onClick={() => setIsTaskPaneOpen(true)}
@@ -234,9 +240,8 @@ export default function Home() {
               </button>
             )}
           </div>
-
           {/* Right: User Initials Dropdown */}
-          <div ref={dropdownRef} className="absolute top-0 right-0 p-2">
+          <div ref={dropdownRef} className="flex absolute top-0 right-0 p-2">
             <div className="relative">
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}

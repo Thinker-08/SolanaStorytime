@@ -157,6 +157,10 @@ async createUser(user: {
     });
     feedback.save();
   }
+
+  async getLibraryStoryById(id: string): Promise<any> {
+    return Stories.findById(id).lean().exec();
+  }
 }
 
 export const storage = new MemStorage();

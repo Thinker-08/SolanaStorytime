@@ -474,6 +474,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Failed to log in with Google" });
     }
   });
+
+  app.get("/library-story", authMiddleware, async (req: AuthRequest, res: Response) => {
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    try {
+      const storyId = _.get(req, "query.id", null);
+      if (!storyId) {
+        return res.status(400).json({ message: "Story ID is required" });
+      }
+      const story = await storage.getLibraryStoryById(storyId);
+      if (!story) {
+        return res.status(404).json({ message: "Story not found" });
+      }
+      const formattedStory = {
+        id: story._id,
+        title: story.title,
+        description: story.description,
+        createdAt: story.createdAt,
+        category: story.category,
+      };
+      return res.json(formattedStory);
+    } catch (error) {
+      console.error("Error retrieving library story:", error);
+      return res.status(500).json({ message: "Failed to retrieve story" });
+    }
+  });
   const httpServer = createServer(app);
   return httpServer;
 }

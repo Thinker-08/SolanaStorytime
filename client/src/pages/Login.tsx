@@ -4,6 +4,7 @@ import { Sun, BookOpen, LogIn } from "lucide-react";                            
 import { apiRequest } from "../lib/queryClient";
 import { useToast } from "../hooks/use-toast";
 import { useLocation } from "wouter";
+import { useAuth } from "../context/AuthContext";
 
 const extractErrorMessage = (error: any) => {
   try {
@@ -23,9 +24,11 @@ export default function AuthForm() {
   const [isLogin, setIsLogin] = useState(true);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { setToken } = useAuth();
 
   useEffect(() => {
     const authToken = localStorage.getItem("authToken");
+    setToken(authToken || "");
     if (authToken) setLocation("/home");
   }, []);
 
@@ -72,6 +75,7 @@ export default function AuthForm() {
       }
 
       localStorage.setItem("authToken", data.token);
+      setToken(data.token || "");
       window.location.href = "/home";
 
     } catch (error: any) {

@@ -127,6 +127,7 @@ export default function LibraryScreen() {
                 <div
                   key={story.id}
                   className="rounded-xl overflow-hidden border border-indigo-800/30 shadow-lg bg-indigo-900/20 backdrop-blur-sm"
+                  onClick={() => navigate(`/library/${story.id}`)}
                 >
                   {/* Top colored section */}
                   <div

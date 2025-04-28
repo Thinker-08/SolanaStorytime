@@ -13,6 +13,7 @@ import { PromptProvider } from "./context/PromptContext";
 import { AuthProvider } from "./context/AuthContext";
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import Library from "./pages/Library";
+import StoryById from "./pages/StoryById";
 
 function Router() {
   return (
@@ -23,6 +24,7 @@ function Router() {
       <Route path="/create" component={Create} />
       <Route path="/story" component={Story} />
       <Route path="/library" component={Library} />
+      <Route path="/library/:id" component={StoryById} />
       <Route component={NotFound} />
     </Switch>
   );

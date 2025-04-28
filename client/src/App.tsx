@@ -12,6 +12,7 @@ import Story from "./pages/Story";
 import { PromptProvider } from "./context/PromptContext";
 import { AuthProvider } from "./context/AuthContext";
 import { GoogleOAuthProvider } from '@react-oauth/google';
+import Library from "./pages/Library";
 
 function Router() {
   return (
@@ -21,6 +22,7 @@ function Router() {
       <Route path="/chat" component={Chat} />
       <Route path="/create" component={Create} />
       <Route path="/story" component={Story} />
+      <Route path="/library" component={Library} />
       <Route component={NotFound} />
     </Switch>
   );

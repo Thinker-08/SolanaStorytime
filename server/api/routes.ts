@@ -413,6 +413,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         title: story.title,
         description: story.description,
         createdAt: story.createdAt,
+        category: story.category,
       }));
       return res.json({ stories: formattedStories });
     } catch (error) {

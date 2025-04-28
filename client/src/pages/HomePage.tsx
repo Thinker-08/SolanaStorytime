@@ -78,7 +78,7 @@ const HomePage = () => {
 
           {/* Story Library */}
           <button
-            // onClick={() => onNavigate("library")}
+            onClick={() => window.location.href = "/library"}
             className="p-6 rounded-xl bg-gradient-to-br from-purple-900 to-indigo-900 border border-purple-500/30 flex items-center gap-4 hover:shadow-lg transition-all shadow-lg"
           >
             <div className="p-3 bg-purple-500/30 rounded-lg shadow-inner">

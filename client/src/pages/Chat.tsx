@@ -11,6 +11,7 @@ import TaskPane from "../components/TaskPane";
 import { useSession } from "../context/SessionContext";
 import { ArrowLeft } from "lucide-react";
 import { useLocation } from "wouter";
+import { useAuth } from "../context/AuthContext";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -34,7 +35,7 @@ export default function Home() {
   const [, navigate] = useLocation();
   const { sessionId, setSessionId } = useSession();
   const [messages, setMessages] = useState<Message[]>([]);
-  const [token, setToken] = useState<string | null>(null);
+  const {token, setToken} = useAuth();
   const [userName, setUserName] = useState<string>("");
   const [isTaskPaneOpen, setIsTaskPaneOpen] = useState(false);
   const [items, setItems] = useState<{ id: string; title: string; description: string }[]>([]);
@@ -87,7 +88,6 @@ export default function Home() {
       localStorage.setItem("sessionId", newSessionId);
     }
     setItems(data);
-    setToken(token);
     setSessionId(newSessionId);
   }, []);
 
@@ -109,13 +109,13 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (!token || !sessionId) return;
+    if (!sessionId) return;
     if (sessionParams !== null) return;
     const storedParams = localStorage.getItem("sessionParams");
     if (storedParams) {
       setSessionParams(JSON.parse(storedParams));
     }
-  }, [token, sessionId, sessionParams]);
+  }, [sessionId, sessionParams]);
 
   const { data, isLoading: isLoadingSession } = useQuery({
     queryKey: [`/api/chat-session?sessionId=${sessionId}`],

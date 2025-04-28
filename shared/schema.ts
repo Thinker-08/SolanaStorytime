@@ -84,6 +84,10 @@ const storySchema = new mongoose.Schema({
     type: Date,
     required: true,
     default: Date.now
+  },
+  category: {
+    type: String,
+    required: true
   }
 }, { timestamps: true });
 

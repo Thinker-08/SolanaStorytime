@@ -28,11 +28,11 @@ export default function Story() {
   const [selectedFeedbackCode, setSelectedFeedbackCode] = useState<number | null>(null);
 
   const feedbackOptions = [
-    { code: 1, src: "/assets/Happy-Face-Icon.png",    alt: "Loved it!!"          },
-    { code: 2, src: "/assets/Face-laughing-icon.png", alt: "Felt connected" },
-    { code: 3, src: "/assets/Ok-Face-Icon.png",       alt: "It was okay"    },
-    { code: 4, src: "/assets/Face-icon.png",          alt: "Didn't click"         },
-    { code: 5, src: "/assets/Sad-Face-Icon.png",      alt: "Needs Improvement"   },
+    { code: 1, src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/lywu9ibb3gm2alhvcvzh.png",    alt: "Loved it!!"          },
+    { code: 2, src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/fkmkhqoa6xyi80a7cwpk.png", alt: "Felt connected" },
+    { code: 3, src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/dsxdjj7qoekw5djcpsp1.png",       alt: "It was okay"    },
+    { code: 4, src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/chrwsxmqm7k0xk2jhorl.png",          alt: "Didn't click"         },
+    { code: 5, src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/tj0ukdvtp01rzyvadq0c.png",      alt: "Needs Improvement"   },
   ];
 
   const storyMutation = useMutation({

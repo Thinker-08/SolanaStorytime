@@ -145,7 +145,7 @@ const feedbackSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-const Feedback = mongoose.model('Feedback', feedbackSchema);
+export const Feedback = mongoose.model('Feedback', feedbackSchema);
 
 export const feedbackRequestSchema = z.object({
   feedbackCode: z.number().min(1, "Feedback code must be a positive number"),

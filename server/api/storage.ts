@@ -155,7 +155,7 @@ async createUser(user: {
       storyPrompt,
       userId,
     });
-    return feedback.save();
+    feedback.save();
   }
 }
 

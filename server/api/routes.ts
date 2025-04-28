@@ -460,8 +460,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         user = await storage.createUser({
           username: decodedValue.name,
           email,
-          phone: "",
-          password: "",
+          phone: "9009099009",
+          password: "testtestetst123123123hahw3@",
         });
       }
       const token = jwt.sign({ id: user.id, email: user.email, username: user.username }, JWT_SECRET, {

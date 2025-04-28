@@ -12,6 +12,26 @@ type Story = {
   category: string;
 };
 
+const colorClasses = [
+  "bg-violet-700",
+  "bg-pink-700",
+  "bg-blue-700",
+  "bg-indigo-700",
+  "bg-purple-700",
+  "bg-emerald-700",
+];
+
+function getColorForStory(story: Story): string {
+  // Use a hash function based on story ID or title for stable random
+  const str = story.title || story.id.toString();
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % colorClasses.length;
+  return colorClasses[index];
+}
+
 export default function LibraryScreen() {
   const [, navigate] = useLocation();
   const [activeCategory, setActiveCategory] = useState("all");
@@ -108,14 +128,17 @@ export default function LibraryScreen() {
                   key={story.id}
                   className="rounded-xl overflow-hidden border border-indigo-800/30 shadow-lg bg-indigo-900/20 backdrop-blur-sm"
                 >
-                  <div className="flex items-center justify-center relative">
-                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent opacity-80"></div>
-                    <div className="relative z-10 text-center px-2">
-                      <h3 className="text-xl font-bold text-white truncate">
-                        {story.title}
-                      </h3>
-                    </div>
-                  </div>
+                  {/* Top colored section */}
+                  <div
+  className={`h-32 ${getColorForStory(story)} flex items-center justify-center relative px-2`}
+>
+  <div className="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent opacity-80"></div>
+  <div className="text-center relative z-10 max-w-full">
+    <h3 className="text-xl font-bold text-white leading-tight break-words">
+      {story.title}
+    </h3>
+  </div>
+</div>
                   <div className="p-4">
                     <p className="text-indigo-100 text-sm mb-3 line-clamp-3">
                       {story.description}

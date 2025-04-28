@@ -27,6 +27,23 @@ type TokenPayload = {
   exp: number;
 };
 
+type GoogleTokenPayload = {
+  aud: string; 
+  azp: string; 
+  email: string; 
+  email_verified: boolean; 
+  exp: number; 
+  family_name: string;
+  given_name: string; 
+  iat: number; 
+  iss: string; 
+  jti: string; 
+  name: string;
+  nbf: number;
+  picture: string;
+  sub: string;
+};
+
 interface AuthRequest extends Request {
   userId?: number;
 }
@@ -347,7 +364,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       console.log(user);
-      const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, {
+      const token = jwt.sign({ id: user.id, email: user.email, username: userName }, JWT_SECRET, {
         expiresIn: "30d",
       });
       return res.status(200).json({ token });
@@ -426,6 +443,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Failed to submit feedback" });
     }
   })
+
+  app.post("/google-login", async (req: Request, res: Response) => {
+    try {
+      const { credential } = req.body;
+      if (!credential) {
+        return res.status(400).json({ message: "Credential is required" });
+      }
+      const decodedValue = jwtDecode<GoogleTokenPayload>(credential);
+      if (!decodedValue || !decodedValue.email) {
+        return res.status(401).json({ message: "Invalid token" });
+      }
+      const email = decodedValue.email;
+      let user = await storage.getUserByEmail(email);
+      if (!user) {
+        user = await storage.createUser({
+          username: decodedValue.name,
+          email,
+          phone: "",
+          password: "",
+        });
+      }
+      const token = jwt.sign({ id: user.id, email: user.email, username: user.username }, JWT_SECRET, {
+        expiresIn: "30d",
+      });
+      return res.status(200).json({ token });
+    } catch (error) {
+      console.error("Error in Google login API:", error);
+      return res.status(500).json({ message: "Failed to log in with Google" });
+    }
+  });
   const httpServer = createServer(app);
   return httpServer;
 }

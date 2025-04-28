@@ -11,6 +11,7 @@ import Create from "./pages/Create";
 import Story from "./pages/Story";
 import { PromptProvider } from "./context/PromptContext";
 import { AuthProvider } from "./context/AuthContext";
+import { GoogleOAuthProvider } from '@react-oauth/google';
 
 function Router() {
   return (
@@ -27,6 +28,7 @@ function Router() {
 
 function App() {
   return (
+    <GoogleOAuthProvider clientId="507853580015-r8kq3f6b3gv88cafi26tvtmmti0rfhe6.apps.googleusercontent.com">
     <SessionProvider>
       <AuthProvider>
        <PromptProvider>
@@ -37,6 +39,7 @@ function App() {
       </PromptProvider>
       </AuthProvider>
     </SessionProvider>
+    </GoogleOAuthProvider>
   );
 }
 

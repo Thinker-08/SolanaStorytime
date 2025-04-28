@@ -5,6 +5,8 @@ import { apiRequest } from "../lib/queryClient";
 import { useToast } from "../hooks/use-toast";
 import { useLocation } from "wouter";
 import { useAuth } from "../context/AuthContext";
+import { GoogleLogin } from '@react-oauth/google';
+import { jwtDecode } from "jwt-decode";
 
 const extractErrorMessage = (error: any) => {
   try {
@@ -87,6 +89,31 @@ export default function AuthForm() {
     }
   };
 
+  const handleGoogleSubmit = async (credentialResponse: any) => {
+    try {
+      const { credential } = credentialResponse;
+      const response = await apiRequest("POST", "/api/google-login", { credential });
+      const data = await response.json();
+      if (!response.ok || !data.token) {
+        toast({
+          title: "Google Login Error",
+          description: data.message || extractErrorMessage(data) || "Something went wrong.",
+          variant: "destructive",
+        });
+        return;
+      }
+      localStorage.setItem("authToken", data.token);
+      setToken(data.token || "");
+      window.location.href = "/home";
+    } catch (err) {
+      toast({
+        title: "Google Login Error",
+        description: extractErrorMessage(err),
+        variant: "destructive",
+      });
+    }
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-gray-900 to-indigo-950 text-white p-6"> {/* :contentReference[oaicite:4]{index=4} */}
       <div className="flex-1 flex flex-col items-center justify-center gap-8">
@@ -155,7 +182,7 @@ export default function AuthForm() {
             {isLogin ? "Login" : "Sign Up"}
           </button>
         </form>
-
+          <GoogleLogin onSuccess={(val) => handleGoogleSubmit(val)}/>
         {/* Toggle Link */}
         <p className="text-gray-300 text-sm">
           {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}

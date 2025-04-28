@@ -123,4 +123,36 @@ export const storyRequestSchema = z.object({
   userId: z.number().min(1, "User ID must be a positive number"),
 });
 
+// === FEEDBACK SCHEMA ===
+
+const feedbackSchema = new mongoose.Schema({
+  feedbackCode: {
+    type: Number,
+    required: true
+  },
+  comment: {
+    type: String,
+    required: true
+  },
+  userId: {
+    type: Number,
+    required: true,
+    ref: "User",
+  },
+  storyPrompt: {
+    type: String,
+    required: true
+  }
+}, { timestamps: true });
+
+const Feedback = mongoose.model('Feedback', feedbackSchema);
+
+export const feedbackRequestSchema = z.object({
+  feedbackCode: z.number().min(1, "Feedback code must be a positive number"),
+  comment: z.string().optional(),
+  userId: z.number().min(1, "User ID must be a positive number"),
+  storyPrompt: z.string().min(1, "Story prompt cannot be empty"),
+});
+
+export type FeedbackRequest = z.infer<typeof feedbackRequestSchema>;
 export type StoryRequest = z.infer<typeof storyRequestSchema>;

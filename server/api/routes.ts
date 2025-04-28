@@ -403,6 +403,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Failed to retrieve stories" });
     }
   });
+
+  app.post("/submit-feedback", authMiddleware, async (req: AuthRequest, res: Response) => {
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    try {
+      const feedbackCode = _.get(req, "body.feedbackCode", null);
+      const comment = _.get(req, "body.comment", "");
+      const storyPrompt = _.get(req, "body.storyPrompt", "");
+
+      if (!feedbackCode || !comment || !storyPrompt) {
+        return res
+          .status(400)
+          .json({ message: "Feedback code, comment, and story prompt are required" });
+      }
+      await storage.saveFeedback({feedbackCode, comment, storyPrompt, userId});
+      return res.status(200).json({ message: "Feedback submitted successfully" });
+    } catch (err) {
+      console.error("Error submitting feedback:", err);
+      return res.status(500).json({ message: "Failed to submit feedback" });
+    }
+  })
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -1,5 +1,5 @@
 import mongoose, { Document } from 'mongoose';
-import { User, Message, Stories } from '../../shared/schema.js';
+import { User, Message, Stories, Feedback } from '../../shared/schema.js';
 import dotenv from 'dotenv';
 dotenv.config();
 // Define types for User and Message documents
@@ -136,6 +136,26 @@ async createUser(user: {
   }
   async getAllLibraryStories(): Promise<[]> {
     return Stories.find({}).lean<[]>().exec();
+  }
+
+  async saveFeedback({
+    feedbackCode,
+    comment,
+    storyPrompt,
+    userId,
+  }: {
+    feedbackCode: number;
+    comment: string;
+    storyPrompt: string;
+    userId: number;
+  }): Promise<void> {
+    const feedback = new Feedback({
+      feedbackCode,
+      comment,
+      storyPrompt,
+      userId,
+    });
+    return feedback.save();
   }
 }
 

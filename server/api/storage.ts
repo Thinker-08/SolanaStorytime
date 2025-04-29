@@ -101,7 +101,7 @@ async createUser(user: {
       {
         $match: {
           userId: Number(userId),
-          sessionId: { $ne: 1 }, // exclude sessionId === 1
+          sessionId: { $ne: "1" }, // exclude sessionId === 1
         },
       },
       {
@@ -140,7 +140,7 @@ async createUser(user: {
       {
         $match: {
           userId: Number(userId),
-          sessionId: { $ne: 1 }, // Exclude sessionId === 1
+          sessionId: { $ne: "1" }, // Exclude sessionId === 1
         },
       },
       {

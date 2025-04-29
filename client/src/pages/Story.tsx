@@ -107,6 +107,36 @@ export default function Story() {
       );
   };
 
+  const handleSaveToLibrary = () => {
+    const titleMatch = story.match(/\*\*Title:\s*(.+?)\*\*/);
+    const title = titleMatch ? titleMatch[1].trim() : null;
+
+    const description = titleMatch
+      ? story.replace(titleMatch[0], '').trim()
+      : story;
+    apiRequest(
+      "POST",
+      "/api/add-story-to-library",
+      {
+        title,
+        description,
+      },
+      { Authorization: `Bearer ${token}` }
+    )      .then(() =>
+      toast({
+        title: "Thanks!",
+        description: "Story is now saved to library.",
+      })
+    )
+    .catch(() =>
+      toast({
+        title: "Error",
+        description: "Could not save the story to library.",
+        variant: "destructive",
+      })
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-900 to-indigo-950 text-white">
       {/* — Header — */}
@@ -199,6 +229,14 @@ export default function Story() {
           Submit Feedback
         </button>
       </form>
+      <button
+          className={
+            "w-full p-3 rounded-lg text-white font-medium flex items-center justify-center gap-2 shadow-lg transition bg-gradient-to-r from-violet-600 to-blue-600 shadow-violet-700/30"
+            }
+          onClick = {() => handleSaveToLibrary()}
+        >
+          Save to Library
+        </button>
         </div>
         )}
       </div>

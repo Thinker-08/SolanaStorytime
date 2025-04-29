@@ -1,14 +1,16 @@
 import { useState, useRef, useEffect } from "react";
 import { Textarea } from "../components/ui/textarea";
 import { Button } from "../components/ui/button";
-import { Send } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 interface MessageInputProps {
   onSendMessage: (message: string) => void;
   isDisabled?: boolean;
+  placeholder?: string;
+  className?: string;
 }
 
-const MessageInput = ({ onSendMessage, isDisabled = false }: MessageInputProps) => {
+const MessageInput = ({ onSendMessage, isDisabled = false, placeholder }: MessageInputProps) => {
   const [messageText, setMessageText] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -39,29 +41,30 @@ const MessageInput = ({ onSendMessage, isDisabled = false }: MessageInputProps) 
   };
 
   return (
-    <section className="flex items-center gap-2">
-      <div className="relative flex-grow">
-        <Textarea
-          ref={textareaRef}
-          value={messageText}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
-          className="w-full resize-none border border-border rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-primary/70 bg-card"
-          placeholder="Type your story request here..."
-          rows={2}
-          disabled={isDisabled}
-        />
-      </div>
-      <Button
-        onClick={handleSendMessage}
-        disabled={!messageText.trim() || isDisabled}
-        className="bg-primary hover:bg-primary/90 text-white rounded-xl h-12 w-12 flex items-center justify-center flex-shrink-0 transition-colors p-0"
-        aria-label="Send message"
-      >
-        <Send className="w-5 h-5" />
-      </Button>
-    </section>
+<section className="relative w-full">
+  <div className="relative flex-grow">
+    <Textarea
+      ref={textareaRef}
+      value={messageText}
+      onChange={handleInputChange}
+      onKeyDown={handleKeyDown}
+      className="w-full p-3 rounded-lg bg-indigo-900/40 text-white resize-none font-medium text-base"
+      placeholder={placeholder}
+      rows={2}
+      disabled={isDisabled}
+    />
+    <Button
+      onClick={handleSendMessage}
+      disabled={!messageText.trim() || isDisabled}
+      className="absolute top-2 right-2 p-3 rounded-full bg-gradient-to-r from-violet-600 to-blue-600 shadow-md"
+      aria-label="Send message"
+    >
+      <ArrowRight className="text-white" strokeWidth={3} fill="#ffffff"/>
+    </Button>
+  </div>
+</section>
+
   );
-};
+}
 
 export default MessageInput;

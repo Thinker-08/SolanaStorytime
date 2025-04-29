@@ -6,10 +6,10 @@ import { useToast } from "../hooks/use-toast";
 import ChatHistory from "../components/ChatHistory";
 import MessageInput from "../components/MessageInput";
 import SamplePrompts from "../components/SamplePrompts";
-import { jwtDecode } from "jwt-decode";
 import TaskPane from "../components/TaskPane";
+import { jwtDecode } from "jwt-decode";
 import { useSession } from "../context/SessionContext";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Plus } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "../context/AuthContext";
 
@@ -22,56 +22,43 @@ type TokenPayload = {
   username: string;
 };
 
-const getInitials = (name: string) => {
-  return name
+const getInitials = (name: string) =>
+  name
     .split(" ")
     .map((n) => n[0])
     .join("")
     .slice(0, 2)
     .toUpperCase();
-};
 
 export default function Home() {
   const [, navigate] = useLocation();
   const { sessionId, setSessionId } = useSession();
   const [messages, setMessages] = useState<Message[]>([]);
-  const {token, setToken} = useAuth();
+  const { token, setToken } = useAuth();
   const [userName, setUserName] = useState<string>("");
   const [isTaskPaneOpen, setIsTaskPaneOpen] = useState(false);
-  const [items, setItems] = useState<{ id: string; title: string; description: string }[]>([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [sessionParams, setSessionParams] = useState<{ storyType: string } | null>(null);
-
   const { toast } = useToast();
   const taskPaneRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const validateToken = () => {
-    const token = localStorage.getItem("authToken");
-
-    if (!token) {
-      console.log("No token found. Redirecting to login.");
+    const authToken = localStorage.getItem("authToken");
+    if (!authToken) {
       window.location.href = "/";
       return false;
     }
-
     try {
-      const decoded = jwtDecode<TokenPayload>(token);
-      if (!decoded.id || !decoded.email || !decoded.exp) {
-        console.log("Invalid token format. Redirecting to login.");
-        window.location.href = "/";
-        return false;
-      }
-
-      const currentTime = Math.floor(Date.now() / 1000);
-      if (decoded.exp < currentTime) {
+      const decoded = jwtDecode<TokenPayload>(authToken);
+      const now = Math.floor(Date.now() / 1000);
+      if (!decoded.id || !decoded.email || decoded.exp < now) {
         localStorage.removeItem("authToken");
         window.location.href = "/";
         return false;
       }
       setUserName(decoded.username);
       return true;
-    } catch (error) {
+    } catch {
       localStorage.removeItem("authToken");
       window.location.href = "/";
       return false;
@@ -80,220 +67,139 @@ export default function Home() {
 
   useEffect(() => {
     if (!validateToken()) return;
-    const storedSessionId = localStorage.getItem("sessionId");
-    const token = localStorage.getItem("authToken");
-    const newSessionId = storedSessionId || uuidv4();
-
-    if (!storedSessionId) {
-      localStorage.setItem("sessionId", newSessionId);
-    }
-    setItems(data);
-    setSessionId(newSessionId);
+    const stored = localStorage.getItem("sessionId");
+    const id = stored || uuidv4();
+    if (!stored) localStorage.setItem("sessionId", id);
+    setSessionId(id);
   }, []);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        (taskPaneRef.current && !taskPaneRef.current.contains(event.target as Node)) &&
-        (dropdownRef.current && !dropdownRef.current.contains(event.target as Node))
-      ) {
-        setIsTaskPaneOpen(false);
-        setDropdownOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!sessionId) return;
-    if (sessionParams !== null) return;
-    const storedParams = localStorage.getItem("sessionParams");
-    if (storedParams) {
-      setSessionParams(JSON.parse(storedParams));
-    }
-  }, [sessionId, sessionParams]);
-
-  const { data, isLoading: isLoadingSession } = useQuery({
-    queryKey: [`/api/chat-session?sessionId=${sessionId}`],
+  const { data } = useQuery({
+    queryKey: ["/api/chat-session", sessionId],
     queryFn: async () => {
-      const response = await fetch(`https://solana-storytime.vercel.app/api/chat-session?sessionId=${sessionId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch session data");
-      }
-
-      return response.json();
+      const res = await fetch(
+        `https://solana-storytime.vercel.app/api/chat-session?sessionId=${sessionId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (!res.ok) throw new Error("Failed to fetch session");
+      return res.json();
     },
     enabled: !!sessionId,
     refetchOnWindowFocus: false,
   });
 
   useEffect(() => {
-    if (data && "messages" in data && Array.isArray(data.messages)) {
-      setMessages(data.messages);
-    }
+    if (data?.messages) setMessages(data.messages);
   }, [data]);
 
   const storyMutation = useMutation({
-    mutationFn: async (message: string) => {
-      const response = await apiRequest(
+    mutationFn: (message: string) =>
+      apiRequest(
         "POST",
         "/api/chat-generate",
-        {
-          message,
-          sessionId,
-        },
-        {
-          Authorization: `Bearer ${token}`,
-        }
-      );
-      return response.json();
+        { message, sessionId },
+        { Authorization: `Bearer ${token}` }
+      ).then((r) => r.json()),
+    onSuccess: (resp) => {
+      setMessages((prev) => [...prev, { role: "assistant", content: resp.message }]);
     },
-    onSuccess: (data) => {
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        {
-          role: "assistant",
-          content: data.message,
-        },
-      ]);
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: `Failed to generate story: ${error.message}`,
-        variant: "destructive",
-      });
+    onError: (err: any) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     },
   });
 
-  const handleSendMessage = async (message: string) => {
-    if (!message.trim()) return;
-    setMessages((prevMessages) => [
-      ...prevMessages,
-      { role: "user", content: message },
-    ]);
-    storyMutation.mutate(message);
-  };
-
-  const handleSamplePromptClick = (prompt: string) => {
-    handleSendMessage(prompt);
+  const handleSend = (msg: string) => {
+    if (!msg.trim()) return;
+    setMessages((prev) => [...prev, { role: "user", content: msg }]);
+    storyMutation.mutate(msg);
   };
 
   const handleLogout = () => {
     localStorage.removeItem("authToken");
-    setToken(null);
-    setUserName("");
-    setSessionId("");
-    setSessionParams(null);
-    localStorage.removeItem("sessionParams");
-    localStorage.removeItem("sessionId");
+    setToken("");
     window.location.href = "/";
   };
 
-  return (
-    <div className="min-h-screen flex flex-row bg-background">
-      {/* Task Pane */}
-      <div
-        ref={taskPaneRef}
-        className={`transition-all duration-300 overflow-hidden h-full
-          ${isTaskPaneOpen ? "w-56 sm:w-64 md:w-72 lg:w-80" : "w-0"}`}
-      >
-        {isTaskPaneOpen && (
-          <div className="h-full border-r border-muted-foreground bg-muted">
-            <TaskPane {...{ token }} onClose={() => setIsTaskPaneOpen(false)} />
-          </div>
-        )}
-      </div>
+  // Close dropdown/task pane when clicking outside
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (
+        taskPaneRef.current && !taskPaneRef.current.contains(e.target as Node)
+      ) setIsTaskPaneOpen(false);
+      if (
+        dropdownRef.current && !dropdownRef.current.contains(e.target as Node)
+      ) setDropdownOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, []);
 
-      {/* Main Content */}
-      <div className="flex flex-col px-4 md:px-8 lg:px-12 flex-1">
-        {/* Header */}
-        <header className="mb-6 text-center relative">
-          {/* Left: Task Pane Button */}
-          <div className="absolute top-0 left-0 p-2">
-          <button onClick={() => navigate("/home")} className="text-indigo-300 px-4">
-            <ArrowLeft className="h-6 w-6" />
+  return (
+    <div className="flex flex-col h-screen bg-gradient-to-b from-gray-900 to-indigo-950 text-white">
+      {/* Header */}
+      <header className="p-4 border-b border-indigo-900/50 flex justify-between items-center">
+        <button onClick={() => navigate("/home")} className="text-indigo-300">
+          <ArrowLeft className="h-6 w-6" />
+        </button>
+        <h1 className="text-xl font-bold">Story Assistant</h1>
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={() => setIsTaskPaneOpen(true)}
+            className="p-2 rounded-full bg-indigo-900/50 shadow-md"
+          >
+            <Plus className="h-5 w-5 text-indigo-300" />
           </button>
-            {!isTaskPaneOpen && (
-              <button
-                onClick={() => setIsTaskPaneOpen(true)}
-                aria-label="Open Task Pane"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6 cursor-pointer"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+          <div ref={dropdownRef} className="relative">
+            <button
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              className="w-8 h-8 rounded-full bg-indigo-900/50 flex items-center justify-center text-indigo-300 font-semibold shadow-md"
+            >
+              {getInitials(userName)}
+            </button>
+            {dropdownOpen && (
+              <div className="absolute right-0 mt-2 w-32 bg-indigo-800 rounded-md shadow-lg py-1 z-50">
+                <button
+                  onClick={handleLogout}
+                  className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-indigo-700 rounded-md"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </button>
+                  Logout
+                </button>
+              </div>
             )}
           </div>
-          {/* Right: User Initials Dropdown */}
-          <div ref={dropdownRef} className="flex absolute top-0 right-0 p-2">
-            <div className="relative">
-              <button
-                onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-primary font-bold shadow-md hover:bg-accent transition"
-              >
-                {getInitials(userName)}
-              </button>
-              {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-32 rounded-md bg-background shadow-lg border border-muted-foreground py-1 z-50">
-                  <button
-                    onClick={handleLogout}
-                    className="block w-full text-left px-4 py-2 text-sm text-muted-foreground hover:bg-muted transition"
-                  >
-                    Logout
-                  </button>
-                </div>
-              )}
-            </div>
+        </div>
+      </header>
+
+      {/* Chat Area */}
+      <div className="flex-1 p-4 overflow-y-auto space-y-6">
+        <div className="flex justify-center">
+          <div className="bg-indigo-900/50 rounded-full px-3 py-1 text-xs text-indigo-300">
+            Today, {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </div>
-
-          {/* Center: Title */}
-          <div className="flex items-center justify-center mb-2">
-            <svg
-              className="w-12 h-12 mr-3 text-primary drop-shadow-xl"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
-            </svg>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary via-purple-500 to-secondary bg-clip-text text-transparent">
-              SolanaStories
-            </h1>
-          </div>
-          <p className="text-md text-muted-foreground">
-            Magical blockchain stories for curious minds
-          </p>
-        </header>
-
-        {/* Sample Prompts */}
-        <SamplePrompts onPromptClick={handleSamplePromptClick} />
-
-        {/* Chat History */}
+        </div>
         <ChatHistory messages={messages} isLoading={storyMutation.isPending} />
-
-        {/* Message Input */}
-        <MessageInput onSendMessage={handleSendMessage} isDisabled={storyMutation.isPending} />
-
-        {/* Footer */}
-        <footer className="mt-6 text-center text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} SolanaStories • Educational stories about blockchain for children</p>
-        </footer>
       </div>
+
+      {/* Input Bar */}
+      <div className="p-3 border-t border-indigo-900/50">
+        <div className="flex items-center w-full rounded-xl p-1 bg-transparent">
+          <MessageInput
+            onSendMessage={handleSend}
+            isDisabled={storyMutation.isPending}
+            placeholder="Ask for a story..."
+            className="flex-1 bg-transparent p-2 text-white"
+          />
+        </div>
+      </div>
+
+      {/* Task Pane Overlay */}
+      {isTaskPaneOpen && (
+        <div
+          ref={taskPaneRef}
+          className="absolute top-0 left-0 h-full w-64 bg-muted border-r border-muted-foreground"
+        >
+          <TaskPane token={token!} onClose={() => setIsTaskPaneOpen(false)} />
+        </div>
+      )}
     </div>
   );
 }

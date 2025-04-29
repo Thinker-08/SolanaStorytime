@@ -1,5 +1,5 @@
 // src/pages/Story.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useLocation } from "wouter";
 import { usePrompt } from "../context/PromptContext";
@@ -9,6 +9,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "../lib/queryClient";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import Lottie from 'lottie-react';
 
 type TokenPayload = {
   id: number;
@@ -18,10 +19,12 @@ type TokenPayload = {
 };
 
 export default function Story() {
+  const lottieRef = useRef();
   const [, navigate] = useLocation();
   const { prompt } = usePrompt();
   const { toast } = useToast();
   const { token } = useAuth();
+  const [animationData, setAnimationData] = useState(null);
 
   const [story, setStory]               = useState<string>("");
   const [comment, setComment]           = useState<string>("");
@@ -61,6 +64,17 @@ export default function Story() {
     if (prompt === "") navigate("/create");
   }, [prompt]);
 
+  useEffect(() => {
+    fetch(
+      "https://res.cloudinary.com/dnzwzwnlg/raw/upload/v1745941973/bxzvidweal4petm3qlfs.json"
+    )
+      .then((res) => res.json())
+      .then(setAnimationData)
+      .catch((err) => console.error("Failed to load Lottie:", err));
+  }, []);
+
+  if (!animationData) return <div>Loading animation…</div>;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Here you have both the numeric code and the comment
@@ -94,7 +108,7 @@ export default function Story() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-gradient-to-b from-gray-900 to-indigo-950 text-white">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-900 to-indigo-950 text-white">
       {/* — Header — */}
       <header className="p-4 border-b border-indigo-900/50 flex justify-between items-center">
         <button onClick={() => navigate("/home")} className="text-indigo-300">
@@ -107,52 +121,52 @@ export default function Story() {
       {/* — Story Content — */}
       <div className="flex-1 p-6 overflow-y-auto space-y-6">
         {storyMutation.isPending ? (
-          <div className="text-center text-indigo-300">Generating story...</div>
+          <div className="flex-1 flex items-center justify-center">
+           <Lottie
+              lottieRef={lottieRef}
+              animationData={animationData}
+              loop
+              autoplay
+              style={{ width: "25%", height: "auto" }}
+          />
+        </div>
         ) : (
-<div className="bg-indigo-900/50 p-4 rounded-2xl shadow-md text-white text-lg whitespace-pre-wrap">
-  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-    {story || prompt}
-  </ReactMarkdown>
-</div>
-
-        )}
-      </div>
-
-      {/* — Feedback Form — */}
+        <div className="bg-indigo-900/50 p-4 rounded-2xl shadow-md text-white text-lg whitespace-pre-wrap">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {story || prompt}
+          </ReactMarkdown>
+                {/* — Feedback Form — */}
       <form
         onSubmit={handleSubmit}
         className="p-4 border-t border-indigo-900/50 space-y-4"
       >
         <h2 className="text-lg font-bold">Feedback</h2>
-
         {/* — Responsive feedback icons — */}
-{/* — Responsive feedback icons — */}
-<div className="flex flex-wrap gap-4 justify-center mb-4">
-  {feedbackOptions.map(({ code, src, alt }) => (
-    <button
-      key={code}
-      type="button"
-      onClick={() => setSelectedFeedbackCode(code)}
-      className={`
-        flex flex-col items-center gap-2 p-4 rounded-lg transition justify-center
-        ${selectedFeedbackCode === code ? "bg-indigo-700" : "hover:bg-indigo-800"}
-      `}
-    >
-      <img
-        src={src}
-        alt={alt}
-        className="
-          object-contain
-          w-10 h-10
-          sm:w-12 sm:h-12
-          md:w-16 md:h-16
-        "
-      />
-      <p className="text-sm md:text-base text-center">{alt}</p>
-    </button>
-  ))}
-</div>
-
+        <div className="flex flex-wrap gap-4 justify-center mb-4">
+          {feedbackOptions.map(({ code, src, alt }) => (
+            <button
+              key={code}
+              type="button"
+              onClick={() => setSelectedFeedbackCode(code)}
+              className={`
+                flex flex-col items-center gap-2 p-4 rounded-lg transition justify-center
+                ${selectedFeedbackCode === code ? "bg-indigo-700" : "hover:bg-indigo-800"}
+              `}
+            >
+              <img
+                src={src}
+                alt={alt}
+                className="
+                  object-contain
+                  w-10 h-10
+                  sm:w-12 sm:h-12
+                  md:w-16 md:h-16
+                "
+              />
+              <p className="text-sm md:text-base text-center">{alt}</p>
+            </button>
+          ))}
+        </div>
 
         {/* — Optional text comment — */}
         <textarea
@@ -185,6 +199,9 @@ export default function Story() {
           Submit Feedback
         </button>
       </form>
+        </div>
+        )}
+      </div>
     </div>
   );
 }

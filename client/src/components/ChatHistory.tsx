@@ -1,9 +1,8 @@
 import { useRef, useEffect, useState } from "react";
 import { Avatar } from "../components/ui/avatar";
 import { ScrollArea } from "../components/ui/scroll-area";
-import { FaRobot, FaUser } from "react-icons/fa";
 import { Button } from "../components/ui/button";
-import { Volume2, VolumeX } from "lucide-react";
+import { Volume2, VolumeX, BookOpen } from "lucide-react";
 import { useToast } from "../hooks/use-toast";
 
 interface Message {
@@ -409,21 +408,21 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
   return (
     <ScrollArea 
       ref={scrollAreaRef}
-      className="flex-grow mb-6 bg-card rounded-xl shadow-md border border-border p-2 overflow-y-auto"
+      className="flex-grow mb-6 p-2 overflow-y-auto bg-transparent"
       style={{ maxHeight: "60vh", minHeight: "300px" }}
     >
       <div className="space-y-4 p-2">
         {messages.length === 0 && (
           <div className="flex items-start">
-            <Avatar className="w-8 h-8 bg-primary">
-              <FaRobot className="text-sm text-white" />
-            </Avatar>
+              <Avatar className="w-8 h-8 bg-primary justify-center">
+                <BookOpen className="text-sm text-white pt-2" size={24}/>
+              </Avatar>
             <div className="ml-3 bg-primary bg-opacity-10 rounded-lg rounded-tl-none p-3 max-w-[85%]">
-              <p className="text-sm font-nunito">
-                Hello! I'm SolanaStories, a storytelling bot for children ages 5-10. 
-                I can create fun adventures that teach Solana blockchain concepts through magical tales! 
-                What kind of story would you like for your child today?
-              </p>
+            <p className="text-base font-semibold font-nunito">
+  Hello! I'm SolanaStories, a storytelling bot for children ages 5-10. 
+  I can create fun adventures that teach Solana blockchain concepts through magical tales! 
+  What kind of story would you like for your child today?
+</p>
             </div>
           </div>
         )}
@@ -434,21 +433,44 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
             className={`flex items-start ${message.role === "user" ? "justify-end" : ""}`}
           >
             {message.role === "assistant" && (
-              <Avatar className="w-8 h-8 bg-primary">
-                <FaRobot className="text-sm text-white" />
+              <Avatar className="w-8 h-8 bg-primary justify-center">
+                <BookOpen className="text-sm text-white pt-2" size={24}/>
               </Avatar>
             )}
             
             <div 
               className={`${
                 message.role === "assistant" 
-                  ? "ml-3 bg-primary bg-opacity-10 rounded-lg rounded-tl-none" 
-                  : "mr-3 bg-secondary bg-opacity-10 rounded-lg rounded-tr-none"
+                  ? "ml-3 bg-indigo-900/40 bg-opacity-10 rounded-lg rounded-tl-none" 
+                  : "mr-3 bg-opacity-10 rounded-lg rounded-tr-none bg-gradient-to-r from-violet-600 to-blue-600"
               } p-3 max-w-[85%] relative group`}
-            >
-              {message.role === "assistant" && (
-                <div className="flex justify-between items-center mb-3">
-                  <h3 className="text-sm font-bold text-primary">Story from SolanaStories</h3>
+            > 
+              {message.role === "assistant" && message.content.includes("\n\n") ? (
+            <>
+              {message.content.split("\n\n").map((paragraph, idx) => {
+                const isTitle = idx === 0 && paragraph.length < 100;
+                
+                return (
+                  <div 
+                    key={idx} 
+                    className={`${
+                      isTitle 
+                        ? "text-xl font-semibold mb-4" 
+                        : "text-base font-semibold font-nunito"
+                    } ${idx === 0 ? "" : "mt-2"}`}
+                  >
+                    {paragraph}
+                  </div>
+                );
+              })}
+            </>
+          ) : (
+            <p className="text-base font-semibold font-nunito">{message.content}</p>
+          )}
+                        {message.role === "assistant" && (
+                <div className="flex justify-between items-center mb-3 pt-2">
+
+                  {/* <h3 className="text-sm font-bold text-primary ">Story from SolanaStories</h3> */}
                   <Button
                     onClick={() => speak(message.content, index)}
                     variant="outline"
@@ -469,45 +491,15 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
                   </Button>
                 </div>
               )}
-              
-              {message.role === "assistant" && message.content.includes("\n\n") ? (
-                <>
-                  {message.content.split("\n\n").map((paragraph, idx) => {
-                    // Check if this paragraph is a title (first paragraph and short)
-                    const isTitle = idx === 0 && paragraph.length < 100;
-                    
-                    return (
-                      <div 
-                        key={idx} 
-                        className={`${
-                          isTitle ? "text-lg font-bold mb-4" : "text-sm font-nunito"
-                        } ${idx === 0 ? "" : "mt-2"}`}
-                      >
-                        {paragraph}
-                      </div>
-                    );
-                  })}
-                </>
-              ) : (
-                <p className="text-sm font-nunito">{message.content}</p>
-              )}
-              
-              {message.role === "user" && (
-                <div className="flex justify-end mb-1">
-                  <Avatar className="w-6 h-6 bg-secondary ml-2">
-                    <FaUser className="text-xs text-white" />
-                  </Avatar>
-                </div>
-              )}
             </div>
           </div>
         ))}
         
         {isLoading && (
           <div className="flex items-start">
-            <Avatar className="w-8 h-8 bg-primary">
-              <FaRobot className="text-sm text-white" />
-            </Avatar>
+              <Avatar className="w-8 h-8 bg-primary justify-center">
+                <BookOpen className="text-sm text-white pt-2" size={24}/>
+              </Avatar>
             <div className="ml-3 bg-primary bg-opacity-10 rounded-lg rounded-tl-none p-4 max-w-[85%]">
               <div className="flex space-x-2">
                 <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }}></div>

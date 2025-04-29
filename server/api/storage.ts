@@ -98,7 +98,12 @@ async createUser(user: {
     const skip = (page - 1) * perPage;
   
     const history = await Message.aggregate([
-      { $match: { userId: Number(userId) } },
+      {
+        $match: {
+          userId: Number(userId),
+          sessionId: { $ne: 1 }, // exclude sessionId === 1
+        },
+      },
       {
         $group: {
           _id: "$sessionId",
@@ -113,7 +118,13 @@ async createUser(user: {
               updatedAt: "$updatedAt",
             },
           },
+          messageCount: { $sum: 1 }, // count messages per session
           latestMessageTime: { $max: "$createdAt" },
+        },
+      },
+      {
+        $match: {
+          messageCount: { $gt: 1 }, // exclude sessions with only 1 message
         },
       },
       { $sort: { latestMessageTime: -1 } },
@@ -124,16 +135,33 @@ async createUser(user: {
     return history;
   }
   
-  
   async getChatHistoryCount(userId: number): Promise<number> {
     const result = await Message.aggregate([
-      { $match: { userId: Number(userId) } },
-      { $group: { _id: "$sessionId" } },
-      { $count: "total" }
+      {
+        $match: {
+          userId: Number(userId),
+          sessionId: { $ne: 1 }, // Exclude sessionId === 1
+        },
+      },
+      {
+        $group: {
+          _id: "$sessionId",
+          messageCount: { $sum: 1 }, // Count messages in each session
+        },
+      },
+      {
+        $match: {
+          messageCount: { $gt: 1 }, // Exclude sessions with only 1 message
+        },
+      },
+      {
+        $count: "total",
+      },
     ]);
   
     return result[0]?.total || 0;
   }
+  
   async getAllLibraryStories(): Promise<[]> {
     return Stories.find({}).lean<[]>().exec();
   }

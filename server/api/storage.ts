@@ -189,6 +189,23 @@ async createUser(user: {
   async getLibraryStoryById(id: string): Promise<any> {
     return Stories.findById(id).lean().exec();
   }
+
+  async saveStory({
+    title,
+    description,
+    category,
+  }: {
+    title: string;
+    description: string;
+    category: string;
+  }): Promise<void> {
+    const story = new Stories({
+      title,
+      description,
+      category,
+    });
+    story.save();
+  }
 }
 
 export const storage = new MemStorage();

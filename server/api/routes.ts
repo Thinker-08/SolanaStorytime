@@ -502,6 +502,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Failed to retrieve story" });
     }
   });
+
+  app.post("/add-story-to-library", authMiddleware, async (req: AuthRequest, res: Response) => {
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    try {
+      const title = _.get(req, "body.title", "");
+      const description = _.get(req, "body.description", "");
+      const category = "Saved Stories";
+      await storage.saveStory({
+        title,
+        description,
+        category,
+      });
+      return res.status(200).json({ message: "Story added to library" });
+    } catch (error) {
+      console.error("Error adding story to library:", error);
+      return res.status(500).json({ message: "Failed to add story to library" });
+    }
+  });
   const httpServer = createServer(app);
   return httpServer;
 }

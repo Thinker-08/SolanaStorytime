@@ -47,3 +47,39 @@ export async function generateStory(userMessage: string, conversationHistory: Me
     throw new Error("Failed to generate the story. Please try again later.");
   }
 }
+
+export async function* generateStoryStream(
+  userMessage: string,
+  conversationHistory: Message[] = []
+): AsyncGenerator<string> {
+  await knowledgeBase.initialize();
+
+  const systemPrompt = knowledgeBase.getSystemPrompt();
+  const knowledgeContext = knowledgeBase.getKnowledgeContext();
+
+  const messages: Message[] = [
+    {
+      role: "system",
+      content: `${systemPrompt}\n\n${knowledgeContext}`,
+    },
+    ...conversationHistory,
+    {
+      role: "user",
+      content: userMessage,
+    },
+  ];
+
+  const stream = await openai.chat.completions.create({
+    model: OPENAI_MODEL,
+    messages,
+    temperature: 0.7,
+    max_tokens: 1500,
+    stream: true,
+  });
+
+  for await (const chunk of stream) {
+    const content = chunk.choices?.[0]?.delta?.content;
+    if (content) yield content;
+  }
+}
+

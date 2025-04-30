@@ -58,15 +58,9 @@ export async function* generateStoryStream(
   const knowledgeContext = knowledgeBase.getKnowledgeContext();
 
   const messages: Message[] = [
-    {
-      role: "system",
-      content: `${systemPrompt}\n\n${knowledgeContext}`,
-    },
+    { role: 'system', content: `${systemPrompt}\n\n${knowledgeContext}` },
     ...conversationHistory,
-    {
-      role: "user",
-      content: userMessage,
-    },
+    { role: 'user',   content: userMessage },
   ];
 
   const stream = await openai.chat.completions.create({
@@ -77,9 +71,28 @@ export async function* generateStoryStream(
     stream: true,
   });
 
+  // Track if the last yielded character was whitespace
+  let prevEndedWithSpace = true;
+
   for await (const chunk of stream) {
-    const content = chunk.choices?.[0]?.delta?.content;
-    if (content) yield content;
+    const raw = chunk.choices?.[0]?.delta?.content;
+    if (!raw) continue;
+
+    let content = raw;
+
+    // 1) If we already ended in whitespace, strip any extra leading spaces
+    if (prevEndedWithSpace) {
+      content = content.replace(/^\s+/, '');
+    }
+    // 2) Otherwise, if we have no leading space but need one, add it
+    else if (!/^\s/.test(content)) {
+      content = ' ' + content;
+    }
+
+    // Update for next iteration
+    prevEndedWithSpace = /\s$/.test(content);
+
+    yield content;
   }
 }
 

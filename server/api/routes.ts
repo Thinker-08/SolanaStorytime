@@ -8,7 +8,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage.js";
 import { storyRequestSchema, chatSessionSchema } from "../../shared/schema.js";
-import { generateStoryStream } from "./openai.js";
+import { generateStory, generateStoryStream } from "./openai.js";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { knowledgeBase } from "./knowledgeBase.js";
@@ -208,6 +208,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     authMiddleware,
     async (req: AuthRequest, res: Response) => {
       try {
+        // Validate request body
         const vetUserId = req.userId;
         const validatedData = storyRequestSchema.parse({
           ...req.body,
@@ -226,36 +227,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Get conversation history
         const historyMessages = await storage.getMessagesBySessionId(sessionId);
 
+        // Format messages for OpenAI
         const conversationHistory = historyMessages.map((msg) => ({
           role: msg.role as "user" | "assistant" | "system",
           content: msg.content,
         }));
 
-        res.setHeader("Content-Type", "text/event-stream");
-        res.setHeader("Cache-Control", "no-cache");
-        res.setHeader("Connection", "keep-alive");
+        // Generate story response
+        const storyResponse = await generateStory(message, conversationHistory);
 
-        let fullResponse = "";
-
-        for await (const chunk of generateStoryStream(message, conversationHistory)) {
-          fullResponse += chunk;
-          res.write(`data: ${chunk}\n\n`);
-        }
-  
-        // Save full assistant response at the end
+        // Save assistant response
         await storage.saveMessage({
           role: "assistant",
-          content: fullResponse,
+          content: storyResponse,
           sessionId,
           userId,
         });
-  
-        res.write("data: [DONE]\n\n");
-        res.end();
+
+        return res.json({
+          message: storyResponse,
+        });
       } catch (error) {
         console.error("Error generating story:", error);
-        res.write("data: [ERROR]\n\n");
-        res.end();
+
+        if (error instanceof ZodError) {
+          const validationError = fromZodError(error);
+          return res.status(400).json({ message: validationError.message });
+        }
+
+        return res.status(500).json({
+          message:
+            error instanceof Error ? error.message : "Failed to generate story",
+        });
       }
     }
   );
@@ -520,6 +523,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Failed to add story to library" });
     }
   });
+
+  app.post(
+    "/story-generate",
+    authMiddleware,
+    async (req: AuthRequest, res: Response) => {
+      try {
+        const { message } = req.body;
+  
+        // Set headers for streaming
+        res.setHeader("Content-Type", "text/event-stream");
+        res.setHeader("Cache-Control", "no-cache");
+        res.setHeader("Connection", "keep-alive");
+  
+        let fullResponse = "";
+  
+        for await (const chunk of generateStoryStream(message, [])) {
+          fullResponse += chunk;
+          res.write(`data: ${chunk}\n\n`);
+        }
+  
+        res.write("data: [DONE]\n\n");
+        res.end();
+      } catch (error) {
+        console.error("Error generating story:", error);
+        res.write("data: [ERROR]\n\n");
+        res.end();
+      }
+    }
+  );
+  
+
   const httpServer = createServer(app);
   return httpServer;
 }

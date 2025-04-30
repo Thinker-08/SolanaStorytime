@@ -132,11 +132,11 @@ export const storyRequestSchema = z.object({
 const feedbackSchema = new mongoose.Schema({
   feedbackCode: {
     type: Number,
-    required: true
+    required: false,
   },
   comment: {
     type: String,
-    required: true
+    required: false,
   },
   userId: {
     type: Number,
@@ -145,17 +145,17 @@ const feedbackSchema = new mongoose.Schema({
   },
   storyPrompt: {
     type: String,
-    required: true
+    required: false,
   }
 }, { timestamps: true });
 
 export const Feedback = mongoose.model('Feedback', feedbackSchema);
 
 export const feedbackRequestSchema = z.object({
-  feedbackCode: z.number().min(1, "Feedback code must be a positive number"),
+  feedbackCode: z.number().min(1, "Feedback code must be a positive number").optional(),
   comment: z.string().optional(),
-  userId: z.number().min(1, "User ID must be a positive number"),
-  storyPrompt: z.string().min(1, "Story prompt cannot be empty"),
+  userId: z.number().min(1, "User ID must be a positive number").optional(),
+  storyPrompt: z.string().min(1, "Story prompt cannot be empty").optional(),
 });
 
 export type FeedbackRequest = z.infer<typeof feedbackRequestSchema>;

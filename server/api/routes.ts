@@ -432,13 +432,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const comment = _.get(req, "body.comment", "");
       const storyPrompt = _.get(req, "body.storyPrompt", "");
 
-      if (!feedbackCode || !comment || !storyPrompt) {
-        return res
+      if (feedbackCode || comment || storyPrompt) {
+        await storage.saveFeedback({feedbackCode, comment, storyPrompt, userId});
+        return res.status(200).json({ message: "Feedback submitted successfully" });
+      }
+      return res
           .status(400)
           .json({ message: "Feedback code, comment, and story prompt are required" });
-      }
-      await storage.saveFeedback({feedbackCode, comment, storyPrompt, userId});
-      return res.status(200).json({ message: "Feedback submitted successfully" });
     } catch (err) {
       console.error("Error submitting feedback:", err);
       return res.status(500).json({ message: "Failed to submit feedback" });

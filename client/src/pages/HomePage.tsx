@@ -1,5 +1,5 @@
 // HomeScreen.tsx
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   BookOpen,
   History,
@@ -11,11 +11,80 @@ import {
   Star,
   Book
 } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import { useLocation } from "wouter";
+import { jwtDecode } from "jwt-decode";
+
+type TokenPayload = {
+  id: number;
+  email: string;
+  exp: number;
+  username: string;
+};
+
+const getInitials = (name: string) =>
+  name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
 const HomePage = () => {
+  const [, navigate] = useLocation();
+  const { token, setToken } = useAuth();
+  const [userName, setUserName] = useState<string>("");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const validateToken = () => {
+    const authToken = localStorage.getItem("authToken");
+    if (!authToken) {
+      window.location.href = "/";
+      return false;
+    }
+    try {
+      const decoded = jwtDecode<TokenPayload>(authToken);
+      const now = Math.floor(Date.now() / 1000);
+      if (!decoded.id || !decoded.email || decoded.exp < now) {
+        localStorage.removeItem("authToken");
+        window.location.href = "/";
+        return false;
+      }
+      setUserName(decoded.username);
+      return true;
+    } catch {
+      localStorage.removeItem("authToken");
+      window.location.href = "/";
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    validateToken();
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("authToken");
+    setToken("");
+    window.location.href = "/";
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (
+        dropdownRef.current && !dropdownRef.current.contains(e.target as Node)
+      ) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, []);
+
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-gray-900 to-indigo-950 text-white">
-      
       {/* Header */}
       <header className="p-4 border-b border-indigo-900/50 flex justify-between items-center">
         <div className="flex items-center gap-2">
@@ -24,16 +93,34 @@ const HomePage = () => {
             SolanaStories
           </h1>
         </div>
-        <div className="flex gap-3">
+        <div className="flex items-center gap-3">
           <button className="p-2 rounded-full bg-indigo-900/50 shadow-md">
             <History className="h-5 w-5 text-violet-300" />
           </button>
           <button className="p-2 rounded-full bg-indigo-900/50 shadow-md">
             <Sun className="h-5 w-5 text-yellow-400" />
           </button>
+          <div ref={dropdownRef} className="relative">
+            <button
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              className="w-8 h-8 rounded-full bg-indigo-900/50 flex items-center justify-center text-indigo-300 font-semibold shadow-md"
+            >
+              {getInitials(userName)}
+            </button>
+            {dropdownOpen && (
+              <div className="absolute right-0 mt-2 w-32 bg-indigo-800 rounded-md shadow-lg py-1 z-50">
+                <button
+                  onClick={handleLogout}
+                  className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-indigo-700 rounded-md"
+                >
+                  Logout
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
-      
+
       {/* Main Content */}
       <div className="flex-1 p-6 space-y-6 overflow-y-auto">
         <div className="text-center mb-6">
@@ -46,7 +133,7 @@ const HomePage = () => {
         <div className="grid grid-cols-1 gap-5">
           {/* Create New Story */}
           <button
-            onClick={() => window.location.href = "/create"}
+            onClick={() => navigate("/create")}
             className="p-6 rounded-xl bg-gradient-to-br from-violet-900 to-indigo-900 border border-violet-500/30 flex items-center gap-4 hover:shadow-lg transition-all shadow-lg"
           >
             <div className="p-3 bg-violet-500/30 rounded-lg shadow-inner">
@@ -62,7 +149,7 @@ const HomePage = () => {
 
           {/* Story Assistant */}
           <button
-            onClick={() => window.location.href = "/chat"}
+            onClick={() => navigate("/chat")}
             className="p-6 rounded-xl bg-gradient-to-br from-blue-900 to-indigo-900 border border-blue-500/30 flex items-center gap-4 hover:shadow-lg transition-all shadow-lg"
           >
             <div className="p-3 bg-blue-500/30 rounded-lg shadow-inner">
@@ -78,7 +165,7 @@ const HomePage = () => {
 
           {/* Story Library */}
           <button
-            onClick={() => window.location.href = "/library"}
+            onClick={() => navigate("/library")}
             className="p-6 rounded-xl bg-gradient-to-br from-purple-900 to-indigo-900 border border-purple-500/30 flex items-center gap-4 hover:shadow-lg transition-all shadow-lg"
           >
             <div className="p-3 bg-purple-500/30 rounded-lg shadow-inner">

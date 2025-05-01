@@ -1,8 +1,17 @@
-import { useState, useEffect, useMemo } from "react";
+// src/pages/LibraryScreen.tsx
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { ArrowRight, Search, Book } from "lucide-react";
 import { apiRequest } from "../lib/queryClient";
 import { useAuth } from "../context/AuthContext";
 import { useLocation } from "wouter";
+import { jwtDecode } from "jwt-decode";
+
+type TokenPayload = {
+  id: number;
+  email: string;
+  exp: number;
+  username: string;
+};
 
 type Story = {
   id: number;
@@ -22,7 +31,6 @@ const colorClasses = [
 ];
 
 function getColorForStory(story: Story): string {
-  // Use a hash function based on story ID or title for stable random
   const str = story.title || story.id.toString();
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -32,38 +40,87 @@ function getColorForStory(story: Story): string {
   return colorClasses[index];
 }
 
+const getInitials = (name: string) =>
+  name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
 export default function LibraryScreen() {
+  const { token, setToken } = useAuth();
   const [, navigate] = useLocation();
+  const [userName, setUserName] = useState<string>("");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // auth guard and extract username
+  const validateToken = () => {
+    const authToken = localStorage.getItem("authToken");
+    if (!authToken) {
+      window.location.href = "/";
+      return false;
+    }
+    try {
+      const decoded = jwtDecode<TokenPayload>(authToken);
+      const now = Math.floor(Date.now() / 1000);
+      if (!decoded.id || !decoded.email || decoded.exp < now) {
+        localStorage.removeItem("authToken");
+        window.location.href = "/";
+        return false;
+      }
+      setUserName(decoded.username);
+      return true;
+    } catch {
+      localStorage.removeItem("authToken");
+      window.location.href = "/";
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    validateToken();
+  }, []);
+
+  // close dropdown on outside click
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("authToken");
+    setToken("");
+    window.location.href = "/";
+  };
+
   const [activeCategory, setActiveCategory] = useState("all");
   const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
-  const { token } = useAuth();
 
   useEffect(() => {
-    // Don’t fetch until we have a token
     if (!token) return;
-
     setLoading(true);
-    apiRequest("GET", "/api/library-stories", undefined, {
-      Authorization: `Bearer ${token}`,
-    })
+    apiRequest(
+      "GET",
+      "/api/library-stories",
+      undefined,
+      { Authorization: `Bearer ${token}` }
+    )
       .then(async (res) => {
-        // If apiRequest wraps fetch, it might already return JSON
-        // so we guard both cases:
         const data = typeof res.json === "function" ? await res.json() : res;
-        if (data.stories) {
-          setStories(data.stories);
-        } else {
-          console.warn("Unexpected response shape:", data);
-        }
+        if (data.stories) setStories(data.stories);
+        else console.warn("Unexpected response shape:", data);
       })
-      .catch((err) => {
-        console.error("Failed to fetch stories:", err);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [token]); // <-- include token so effect runs when it arrives
+      .catch((err) => console.error("Failed to fetch stories:", err))
+      .finally(() => setLoading(false));
+  }, [token]);
 
   const storyCategories = useMemo(() => {
     const cats = new Set<string>();
@@ -80,13 +137,34 @@ export default function LibraryScreen() {
     <div className="flex flex-col h-full bg-gradient-to-b from-gray-900 to-indigo-950 text-white">
       {/* Header */}
       <header className="p-4 border-b border-indigo-900/50 flex justify-between items-center">
-        <button className="text-indigo-300" onClick={() => navigate("/home")}>
+        <button className="text-indigo-300" onClick={() => navigate("/home")}
+        >
           <ArrowRight className="h-6 w-6 rotate-180" />
         </button>
         <h1 className="text-xl font-bold">Story Library</h1>
-        <button className="p-2 rounded-full bg-indigo-900/50 shadow-md">
-          <Search className="h-5 w-5 text-indigo-300" />
-        </button>
+        <div className="flex items-center gap-3">
+          <button className="p-2 rounded-full bg-indigo-900/50 shadow-md">
+            <Search className="h-5 w-5 text-indigo-300" />
+          </button>
+          <div ref={dropdownRef} className="relative">
+            <button
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              className="w-8 h-8 rounded-full bg-indigo-900/50 flex items-center justify-center text-indigo-300 font-semibold shadow-md"
+            >
+              {getInitials(userName)}
+            </button>
+            {dropdownOpen && (
+              <div className="absolute right-0 mt-2 w-32 bg-indigo-800 rounded-md shadow-lg py-1 z-50">
+                <button
+                  onClick={handleLogout}
+                  className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-indigo-700 rounded-md"
+                >
+                  Logout
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </header>
 
       {/* Categories */}
@@ -129,25 +207,23 @@ export default function LibraryScreen() {
                   className="rounded-xl overflow-hidden border border-indigo-800/30 shadow-lg bg-indigo-900/20 backdrop-blur-sm"
                   onClick={() => navigate(`/library/${story.id}`)}
                 >
-                  {/* Top colored section */}
                   <div
-  className={`h-32 ${getColorForStory(story)} flex items-center justify-center relative px-2`}
->
-  <div className="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent opacity-80"></div>
-  <div className="text-center relative z-10 max-w-full">
-    <h3 className="text-xl font-bold text-white leading-tight break-words">
-      {story.title}
-    </h3>
-  </div>
-</div>
+                    className={`h-32 ${getColorForStory(story)} flex items-center justify-center relative px-2`}
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent opacity-80" />
+                    <div className="text-center relative z-10 max-w-full">
+                      <h3 className="text-xl font-bold text-white leading-tight break-words">
+                        {story.title}
+                      </h3>
+                    </div>
+                  </div>
                   <div className="p-4">
                     <p className="text-indigo-100 text-sm mb-3 line-clamp-3">
                       {story.description}
                     </p>
                     <div className="flex justify-between items-center">
                       <span className="text-xs px-2 py-1 rounded-full bg-indigo-800/50 text-indigo-200">
-                        {story.category.toUpperCase() +
-                          story.category.slice(1)}
+                        {story.category[0].toUpperCase() + story.category.slice(1)}
                       </span>
                       <button className="flex items-center gap-1 text-violet-300 text-sm hover:underline">
                         <Book size={14} />

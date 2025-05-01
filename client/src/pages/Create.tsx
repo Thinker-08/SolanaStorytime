@@ -1,14 +1,82 @@
 // src/pages/Create.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ArrowLeft, BookOpen } from "lucide-react";
 import { usePrompt } from "../context/PromptContext";
 import { useLocation } from "wouter";
+import { useAuth } from "../context/AuthContext";
+import { jwtDecode } from "jwt-decode";
 
 type Option = { id: string; name: string };
+
+type TokenPayload = {
+  id: number;
+  email: string;
+  exp: number;
+  username: string;
+};
+
+const getInitials = (name: string) =>
+  name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
 export default function CreateStoryScreen() {
   const { setPrompt } = usePrompt();
   const [, navigate] = useLocation();
+  const { token, setToken } = useAuth();
+  const [userName, setUserName] = useState<string>("");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Auth validation on mount
+  const validateToken = () => {
+    const authToken = localStorage.getItem("authToken");
+    if (!authToken) {
+      window.location.href = "/";
+      return false;
+    }
+    try {
+      const decoded = jwtDecode<TokenPayload>(authToken);
+      const now = Math.floor(Date.now() / 1000);
+      if (!decoded.id || !decoded.email || decoded.exp < now) {
+        localStorage.removeItem("authToken");
+        window.location.href = "/";
+        return false;
+      }
+      setUserName(decoded.username);
+      return true;
+    } catch {
+      localStorage.removeItem("authToken");
+      window.location.href = "/";
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    validateToken();
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("authToken");
+    setToken("");
+    window.location.href = "/";
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (
+        dropdownRef.current && !dropdownRef.current.contains(e.target as Node)
+      ) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, []);
 
   // State for nicknames and interests
   const [childNickname, setChildNickname] = useState("");
@@ -34,12 +102,10 @@ export default function CreateStoryScreen() {
     { id: "robot", name: "Robot" },
   ];
 
-  // Only enable generation when all fields are filled
   const canGenerate = Boolean(
     childNickname && parentNickname && parentInterest && childInterest
   );
 
-  // Helper to get names
   const parentInterestName =
     parentInterests.find((opt) => opt.id === parentInterest)?.name || "";
   const childInterestName =
@@ -52,7 +118,24 @@ export default function CreateStoryScreen() {
           <ArrowLeft className="h-6 w-6" />
         </button>
         <h1 className="text-xl font-bold">Create your own Soul Story</h1>
-        <div className="w-6" />
+        <div ref={dropdownRef} className="relative">
+          <button
+            onClick={() => setDropdownOpen(!dropdownOpen)}
+            className="w-8 h-8 rounded-full bg-indigo-900/50 flex items-center justify-center text-indigo-300 font-semibold shadow-md"
+          >
+            {getInitials(userName)}
+          </button>
+          {dropdownOpen && (
+            <div className="absolute right-0 mt-2 w-32 bg-indigo-800 rounded-md shadow-lg py-1 z-50">
+              <button
+                onClick={handleLogout}
+                className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-indigo-700 rounded-md"
+              >
+                Logout
+              </button>
+            </div>
+          )}
+        </div>
       </header>
 
       <div className="flex-1 p-6 space-y-6 overflow-y-auto">

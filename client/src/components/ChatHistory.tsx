@@ -417,12 +417,12 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
               <Avatar className="w-8 h-8 bg-primary justify-center">
                 <BookOpen className="text-sm text-white pt-2" size={24}/>
               </Avatar>
-            <div className="ml-3 bg-primary bg-opacity-10 rounded-lg rounded-tl-none p-3 max-w-[85%]">
-            <p className="text-base font-semibold font-nunito">
-  Hello! I'm SolanaStories, a storytelling bot for children ages 5-10. 
-  I can create fun adventures that teach Solana blockchain concepts through magical tales! 
-  What kind of story would you like for your child today?
-</p>
+            <div className="ml-3 bg-white rounded-lg rounded-tl-none p-3 max-w-[85%]">
+            <p className="text-black font-medium font-nunito">
+              Hello! I'm SolanaStories, a storytelling bot for children ages 5-10. 
+              I can create fun adventures that teach Solana blockchain concepts through magical tales! 
+              What kind of story would you like for your child today?
+            </p>
             </div>
           </div>
         )}
@@ -433,7 +433,7 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
             className={`flex items-start ${message.role === "user" ? "justify-end" : ""}`}
           >
             {message.role === "assistant" && (
-              <Avatar className="w-8 h-8 bg-primary justify-center">
+              <Avatar className="w-8 h-8 bg-violet-400 justify-center">
                 <BookOpen className="text-sm text-white pt-2" size={24}/>
               </Avatar>
             )}
@@ -441,8 +441,8 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
             <div 
               className={`${
                 message.role === "assistant" 
-                  ? "ml-3 bg-indigo-900/40 bg-opacity-10 rounded-lg rounded-tl-none" 
-                  : "mr-3 bg-opacity-10 rounded-lg rounded-tr-none bg-gradient-to-r from-violet-600 to-blue-600"
+                  ? "ml-3 bg-white rounded-lg rounded-tl-none text-black font-thin" 
+                  : "mr-3 rounded-lg rounded-tr-none bg-violet-400"
               } p-3 max-w-[85%] relative group`}
             > 
               {message.role === "assistant" && message.content.includes("\n\n") ? (
@@ -455,8 +455,8 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
                     key={idx} 
                     className={`${
                       isTitle 
-                        ? "text-xl font-semibold mb-4" 
-                        : "text-base font-semibold font-nunito"
+                        ? "font-medium mb-4" 
+                        : "font-medium font-nunito"
                     } ${idx === 0 ? "" : "mt-2"}`}
                   >
                     {paragraph}
@@ -465,7 +465,7 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
               })}
             </>
           ) : (
-            <p className="text-base font-semibold font-nunito">{message.content}</p>
+            <p className="text-base font-medium font-nunito">{message.content}</p>
           )}
                         {message.role === "assistant" && (
                 <div className="flex justify-between items-center mb-3 pt-2">

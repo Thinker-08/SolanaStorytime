@@ -134,24 +134,24 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-b from-gray-900 to-indigo-950 text-white">
+    <div className="flex flex-col h-screen bg-violet-100 text-white">
       {/* Header */}
-      <header className="p-4 border-b border-indigo-900/50 flex justify-between items-center">
+      <header className="p-4 border-b border-indigo-900/50 flex justify-between items-center bg-white">
         <button onClick={() => navigate("/home")} className="text-indigo-300">
-          <ArrowLeft className="h-6 w-6" />
+          <ArrowLeft className="h-6 w-6 text-violet-400" />
         </button>
-        <h1 className="text-xl font-bold">Story Assistant</h1>
+        <h1 className="text-xl font-extrabold text-black">Story Assistant</h1>
         <div className="flex items-center space-x-3">
           <button
             onClick={() => setIsTaskPaneOpen(true)}
-            className="p-2 rounded-full bg-indigo-900/50 shadow-md"
+            className="p-2 rounded-full bg-violet-100 shadow-md"
           >
-            <Plus className="h-5 w-5 text-indigo-300" />
+            <Plus className="h-5 w-5 text-violet-400" />
           </button>
           <div ref={dropdownRef} className="relative">
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="w-8 h-8 rounded-full bg-indigo-900/50 flex items-center justify-center text-indigo-300 font-semibold shadow-md"
+              className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center text-violet-400 font-semibold shadow-md"
             >
               {getInitials(userName)}
             </button>
@@ -172,7 +172,7 @@ export default function Home() {
       {/* Chat Area */}
       <div className="flex-1 p-4 overflow-y-auto space-y-6">
         <div className="flex justify-center">
-          <div className="bg-indigo-900/50 rounded-full px-3 py-1 text-xs text-indigo-300">
+          <div className="bg-violet-200 rounded-full px-3 py-1 text-xs text-black">
             Today, {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </div>
         </div>
@@ -180,13 +180,13 @@ export default function Home() {
       </div>
 
       {/* Input Bar */}
-      <div className="p-3 border-t border-indigo-900/50">
-        <div className="flex items-center w-full rounded-xl p-1 bg-transparent">
+      <div className="p-3 border-indigo-100 bg-white">
+        <div className="flex items-center w-full rounded-xl p-1 bg-white">
           <MessageInput
             onSendMessage={handleSend}
             isDisabled={storyMutation.isPending}
             placeholder="Ask for a story..."
-            className="flex-1 bg-transparent p-2 text-white"
+            className="flex-1 bg-transparent p-2 text-white placeholder-white"
           />
         </div>
       </div>

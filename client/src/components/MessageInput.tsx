@@ -48,7 +48,7 @@ const MessageInput = ({ onSendMessage, isDisabled = false, placeholder }: Messag
       value={messageText}
       onChange={handleInputChange}
       onKeyDown={handleKeyDown}
-      className="w-full p-3 rounded-lg bg-indigo-900/40 text-white resize-none font-medium text-base"
+      className="w-full p-3 rounded-lg bg-violet-50 text-black resize-none font-medium text-base"
       placeholder={placeholder}
       rows={2}
       disabled={isDisabled}

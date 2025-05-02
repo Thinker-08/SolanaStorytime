@@ -113,15 +113,15 @@ export default function CreateStoryScreen() {
 
   return (
     <div className="flex flex-col h-full bg-violet-100 text-white">
-      <header className="p-4 border-b border-indigo-900/50 flex justify-between items-center">
+      <header className="p-4 flex justify-between items-center bg-white">
         <button onClick={() => navigate("/home")} className="text-indigo-300">
-          <ArrowLeft className="h-6 w-6" />
+          <ArrowLeft className="h-6 w-6 text-violet-400" />
         </button>
         <h1 className="text-xl font-bold text-black">Create your own Soul Story</h1>
         <div ref={dropdownRef} className="relative">
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-indigo-800 font-semibold shadow-md"
+            className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center text-indigo-800 font-semibold shadow-md"
           >
             {getInitials(userName)}
           </button>

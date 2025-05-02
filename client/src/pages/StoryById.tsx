@@ -100,11 +100,11 @@ export default function Story() {
   const [selectedFeedbackCode, setSelectedFeedbackCode] = useState<number | null>(null);
 
   const feedbackOptions = [
-    { code: 1, src: "https://res.cloudinary.com/...png", alt: "Loved it!!" },
-    { code: 2, src: "https://res.cloudinary.com/...png", alt: "Felt connected" },
-    { code: 3, src: "https://res.cloudinary.com/...png", alt: "It was okay" },
-    { code: 4, src: "https://res.cloudinary.com/...png", alt: "Didn't click" },
-    { code: 5, src: "https://res.cloudinary.com/...png", alt: "Needs Improvement" },
+    { code: 1, src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/lywu9ibb3gm2alhvcvzh.png", alt: "Loved it!!" },
+    { code: 2, src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/fkmkhqoa6xyi80a7cwpk.png", alt: "Felt connected" },
+    { code: 3, src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/dsxdjj7qoekw5djcpsp1.png", alt: "It was okay" },
+    { code: 4, src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/chrwsxmqm7k0xk2jhorl.png", alt: "Didn't click" },
+    { code: 5, src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/tj0ukdvtp01rzyvadq0c.png", alt: "Needs Improvement" },
   ];
 
   useEffect(() => {
@@ -148,16 +148,16 @@ export default function Story() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-gradient-to-b from-gray-900 to-indigo-950 text-white">
-      <header className="p-4 border-b border-indigo-900/50 flex items-center justify-between">
+    <div className="flex flex-col h-full bg-violet-100 text-white">
+      <header className="p-4 flex items-center justify-between bg-white">
         <button onClick={() => window.history.back()} className="text-indigo-300">
-          <ArrowLeft className="h-6 w-6" />
+          <ArrowLeft className="h-6 w-6 text-violet-400" />
         </button>
-        <h1 className="text-xl font-bold flex-1 text-center">Your Story</h1>
+        <h1 className="text-xl font-extrabold flex-1 text-center text-black">Your Story</h1>
         <div ref={dropdownRef} className="relative">
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="w-8 h-8 rounded-full bg-indigo-900/50 flex items-center justify-center text-indigo-300 font-semibold shadow-md"
+            className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center text-violet-400 font-semibold shadow-md"
           >
             {getInitials(userName)}
           </button>
@@ -179,8 +179,8 @@ export default function Story() {
           <div className="text-center text-indigo-300">Generating story…</div>
         ) : story ? (
           <>
-            <h2 className="text-3xl font-bold text-center mb-6">{story.title}</h2>
-            <div className="bg-indigo-900/50 p-4 rounded-2xl shadow-md text-white text-lg whitespace-pre-wrap">
+            <h2 className="text-3xl font-bold text-center mb-6 text-black">{story.title}</h2>
+            <div className="bg-white p-4 rounded-2xl shadow-md text-lg whitespace-pre-wrap text-black">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{story.description}</ReactMarkdown>
             </div>
           </>
@@ -189,20 +189,20 @@ export default function Story() {
         )}
       </div>
 
-      <form onSubmit={handleSubmit} className="p-4 border-t border-indigo-900/50 space-y-4">
-        <h2 className="text-lg font-bold">Feedback</h2>
+      <form onSubmit={handleSubmit} className="p-4 space-y-4">
+        <h2 className="text-lg font-extrabold text-black">Feedback</h2>
         <div className="flex flex-wrap gap-4 justify-center mb-4">
           {feedbackOptions.map(({ code, src, alt }) => (
             <button
               key={code}
               type="button"
               onClick={() => setSelectedFeedbackCode(code)}
-              className={`flex flex-col items-center gap-2 p-4 rounded-lg transition ${
-                selectedFeedbackCode === code ? "bg-indigo-700" : "hover:bg-indigo-800"
+              className={`flex flex-col items-center gap-2 p-4 rounded-lg transition border border-white shadow-inner shadow-md-2 ${
+                selectedFeedbackCode === code ? "bg-violet-400" : "hover:bg-purple-200"
               }`}
             >
               <img src={src} alt={alt} className="object-contain w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16" />
-              <p className="text-sm md:text-base text-center">{alt}</p>
+              <p className="text-sm md:text-base text-center text-black font-medium">{alt}</p>
             </button>
           ))}
         </div>
@@ -210,15 +210,15 @@ export default function Story() {
           value={comment}
           onChange={(e) => setComment(e.target.value)}
           placeholder="What did you think of this story?"
-          className="w-full h-24 p-3 rounded-lg bg-indigo-900/40 border border-indigo-700/30 text-white focus:outline-none focus:ring-2 focus:ring-violet-500 shadow-md resize-none"
+          className="w-full h-24 p-3 rounded-lg bg-white border border-indigo-700/30 text-black focus:outline-none focus:ring-2 focus:ring-violet-500 shadow-md resize-none placeholder-black"
         />
         <button
           type="submit"
           disabled={selectedFeedbackCode === null && !comment.trim()}
-          className={`w-full p-3 rounded-lg text-white font-medium flex items-center justify-center gap-2 shadow-lg transition ${
+          className={`w-full p-4 rounded-lg font-medium flex items-center justify-center gap-2 shadow-lg ${
             selectedFeedbackCode !== null || comment.trim()
-              ? "bg-gradient-to-r from-violet-600 to-blue-600 shadow-violet-700/30"
-              : "bg-indigo-900/50 text-indigo-400 cursor-not-allowed"
+              ? "bg-violet-400 text-white font-extrabold shadow-violet-700/30"
+              : "bg-violet-200 font-extrabold text-white"
           }`}
         >
           Submit Feedback

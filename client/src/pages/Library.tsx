@@ -22,12 +22,7 @@ type Story = {
 };
 
 const colorClasses = [
-  "bg-violet-700",
-  "bg-pink-700",
-  "bg-blue-700",
-  "bg-indigo-700",
-  "bg-purple-700",
-  "bg-emerald-700",
+  "bg-violet-200",
 ];
 
 function getColorForStory(story: Story): string {
@@ -134,22 +129,22 @@ export default function LibraryScreen() {
       : stories.filter((s) => s.category === activeCategory);
 
   return (
-    <div className="flex flex-col h-full bg-gradient-to-b from-gray-900 to-indigo-950 text-white">
+    <div className="flex flex-col h-full bg-violet-100 text-white">
       {/* Header */}
-      <header className="p-4 border-b border-indigo-900/50 flex justify-between items-center">
+      <header className="p-4 flex justify-between items-center bg-white">
         <button className="text-indigo-300" onClick={() => navigate("/home")}
         >
-          <ArrowRight className="h-6 w-6 rotate-180" />
+          <ArrowRight className="h-6 w-6 rotate-180 text-violet-400" />
         </button>
-        <h1 className="text-xl font-bold">Story Library</h1>
+        <h1 className="text-xl font-extrabold text-black">Story Library</h1>
         <div className="flex items-center gap-3">
-          <button className="p-2 rounded-full bg-indigo-900/50 shadow-md">
-            <Search className="h-5 w-5 text-indigo-300" />
+          <button className="p-2 rounded-full bg-violet-100 shadow-md">
+            <Search className="h-5 w-5 text-violet-400" />
           </button>
           <div ref={dropdownRef} className="relative">
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="w-8 h-8 rounded-full bg-indigo-900/50 flex items-center justify-center text-indigo-300 font-semibold shadow-md"
+              className="w-8 h-8 rounded-full text-violet-400 flex items-center justify-center text-indigo-300 font-semibold shadow-md bg-violet-100"
             >
               {getInitials(userName)}
             </button>
@@ -168,7 +163,7 @@ export default function LibraryScreen() {
       </header>
 
       {/* Categories */}
-      <div className="p-4 border-b border-indigo-900/50 overflow-x-auto">
+      <div className="p-4 overflow-x-auto bg-white bg-violet-100">
         <div className="flex gap-2">
           {storyCategories.map((category) => (
             <button
@@ -176,8 +171,8 @@ export default function LibraryScreen() {
               onClick={() => setActiveCategory(category)}
               className={`px-4 py-2 rounded-full text-sm whitespace-nowrap shadow-md transition-colors duration-200 ${
                 activeCategory === category
-                  ? "bg-gradient-to-r from-violet-600 to-blue-600 text-white"
-                  : "bg-indigo-900/50 text-indigo-300"
+                  ? "bg-violet-400 text-white font-bold"
+                  : "bg-violet-50 text-black font-thin"
               }`}
             >
               {category === "all"
@@ -189,7 +184,7 @@ export default function LibraryScreen() {
       </div>
 
       {/* Stories Grid */}
-      <div className="flex-1 p-4 overflow-y-auto">
+      <div className="flex-1 p-4 overflow-y-auto bg-violet-100">
         {loading ? (
           <div className="text-center text-indigo-300">
             Loading stories...
@@ -204,29 +199,29 @@ export default function LibraryScreen() {
               filteredStories.map((story) => (
                 <div
                   key={story.id}
-                  className="rounded-xl overflow-hidden border border-indigo-800/30 shadow-lg bg-indigo-900/20 backdrop-blur-sm"
+                  className="rounded-xl overflow-hidden border border-white shadow-lg bg-indigo-900/20 backdrop-blur-sm"
                   onClick={() => navigate(`/library/${story.id}`)}
                 >
                   <div
                     className={`h-32 ${getColorForStory(story)} flex items-center justify-center relative px-2`}
                   >
-                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent opacity-80" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-white to-transparent opacity-80" />
                     <div className="text-center relative z-10 max-w-full">
-                      <h3 className="text-xl font-bold text-white leading-tight break-words">
+                      <h3 className="text-xl font-extrabold text-black leading-tight break-words">
                         {story.title}
                       </h3>
                     </div>
                   </div>
-                  <div className="p-4">
-                    <p className="text-indigo-100 text-sm mb-3 line-clamp-3">
+                  <div className="p-4 bg-white">
+                    <p className="text-black text-sm mb-3 line-clamp-3">
                       {story.description}
                     </p>
                     <div className="flex justify-between items-center">
-                      <span className="text-xs px-2 py-1 rounded-full bg-indigo-800/50 text-indigo-200">
+                      <span className="text-xs px-2 py-1 rounded-full bg-violet-100 text-black">
                         {story.category[0].toUpperCase() + story.category.slice(1)}
                       </span>
-                      <button className="flex items-center gap-1 text-violet-300 text-sm hover:underline">
-                        <Book size={14} />
+                      <button className="flex items-center gap-1 text-violet-500 text-sm hover:underline">
+                        <Book size={14} className="text-violet-500" />
                         Read
                       </button>
                     </div>

@@ -164,13 +164,13 @@ export default function Story() {
   if (!animationData) return <div>Loading animation…</div>;
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-900 to-indigo-950 text-white">
+    <div className="flex flex-col h-full bg-violet-100 text-white">
       {/* Header */}
-      <header className="p-4 border-b border-indigo-900/50 flex justify-between items-center">
+      <header className="p-4 flex justify-between items-center bg-white">
         <button onClick={() => navigate("/home")} className="text-indigo-300">
           <ArrowLeft className="h-6 w-6" />
         </button>
-        <h1 className="text-xl font-bold">Your Story</h1>
+        <h1 className="text-xl font-black text-black">Your Story</h1>
         <div className="w-6" />
       </header>
 
@@ -187,18 +187,18 @@ export default function Story() {
             />
           </div>
         ) : (
-          <div className="bg-indigo-900/50 p-4 rounded-2xl shadow-md text-white text-lg whitespace-pre-wrap">
-<ReactMarkdown
-  remarkPlugins={[remarkGfm]}
-  components={{
-    // Override how <strong> is rendered:
-    strong: ({ node, ...props }) => (
-      <strong className="font-bold text-xl" {...props} />
-    ),
-  }}
->
-  {rawStory ? formatStory(rawStory) : prompt}
-</ReactMarkdown>
+          <div className="bg-white p-4 rounded-2xl shadow-md text-black text-lg whitespace-pre-wrap">
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              // Override how <strong> is rendered:
+              strong: ({ node, ...props }) => (
+                <strong className="font-bold text-xl text-black" {...props} />
+              ),
+            }}
+          >
+            {rawStory ? formatStory(rawStory) : prompt}
+          </ReactMarkdown>
 
 
             {/* Feedback Form */}
@@ -210,7 +210,7 @@ export default function Story() {
                     key={code}
                     type="button"
                     onClick={() => setSelectedFeedbackCode(code)}
-                    className={`flex flex-col items-center gap-2 p-4 rounded-lg transition ${selectedFeedbackCode === code ? "bg-indigo-700" : "hover:bg-indigo-800"}`}>
+                    className={`flex flex-col items-center gap-2 p-4 rounded-lg transition ${selectedFeedbackCode === code ? "bg-violet-400" : "hover:bg-purple-200"}`}>
                     <img src={src} alt={alt} className="w-12 h-12 object-contain" />
                     <p className="text-sm md:text-base text-center">{alt}</p>
                   </button>
@@ -220,15 +220,15 @@ export default function Story() {
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 placeholder="What did you think of this story?"
-                className="w-full h-24 p-3 rounded-lg bg-indigo-900/40 border border-indigo-700/30 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none"
+                className="w-full h-24 p-3 rounded-lg bg-white border border-indigo-700/30 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none"
               />
               <button
                 type="submit"
                 disabled={selectedFeedbackCode === null && !comment.trim()}
                 className={`w-full p-3 rounded-lg text-white font-medium flex items-center justify-center gap-2 shadow-lg transition ${
                   selectedFeedbackCode !== null || comment.trim()
-                    ? "bg-gradient-to-r from-violet-600 to-blue-600 shadow-violet-700/30"
-                    : "bg-indigo-900/50 text-indigo-400 cursor-not-allowed"
+              ? "bg-violet-400 text-white font-extrabold shadow-violet-700/30"
+              : "bg-violet-200 font-extrabold text-white"
                 }`}>
                 Submit Feedback
               </button>

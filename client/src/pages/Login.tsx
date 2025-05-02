@@ -1,6 +1,6 @@
 // AuthForm.tsx
 import { useEffect, useState } from "react";
-import { Sun, BookOpen, LogIn } from "lucide-react";                                       // :contentReference[oaicite:3]{index=3}
+import { Sun, BookOpen, LogIn } from "lucide-react";
 import { apiRequest } from "../lib/queryClient";
 import { useToast } from "../hooks/use-toast";
 import { useLocation } from "wouter";
@@ -115,22 +115,22 @@ export default function AuthForm() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-b from-gray-900 to-indigo-950 text-white p-6"> {/* :contentReference[oaicite:4]{index=4} */}
+    <div className="flex flex-col min-h-screen bg-violet-100 p-6 font-cal">
       <div className="flex-1 flex flex-col items-center justify-center gap-8">
         {/* Header & Icons */}
         <div className="text-center">
           <div className="mb-2 flex justify-center">
             <div className="relative">
               <Sun className="text-yellow-400 h-16 w-16 absolute -left-6 -top-6 opacity-70 animate-pulse" /> {/* :contentReference[oaicite:5]{index=5} */}
-              <div className="bg-gradient-to-br from-violet-500 to-blue-600 rounded-full p-4 shadow-lg shadow-violet-600/30">
+              <div className="bg-gradient-to-br from-violet-400 to-violet-500 rounded-full p-4 shadow-lg shadow-violet-600/30">
                 <BookOpen className="h-14 w-14 text-white" />
               </div>
             </div>
           </div>
-          <h1 className="text-3xl font-bold mt-4 bg-gradient-to-r from-cyan-400 via-purple-500 to-blue-500 bg-clip-text text-transparent">
-            {isLogin ? "Login" : "Sign Up"}
+          <h1 className="text-3xl font-black mt-4 bg-gradient-to-r from-blue-50 via-violet-500 to-blue-50 bg-clip-text text-transparent font-heading lowercase">
+            soulstory
           </h1>
-          <p className="text-gray-300 mt-2">
+          <p className="text-gray-600 mt-2">
             {isLogin
               ? "Welcome back! Enter your credentials to access your account."
               : "Create a new account to get started."}
@@ -144,7 +144,7 @@ export default function AuthForm() {
             name="email"
             placeholder="Email"
             required
-            className="w-full p-3 rounded-lg bg-gray-800 border border-indigo-700/50 text-white focus:outline-none focus:ring-2 focus:ring-violet-500 shadow-md"
+            className="w-full p-3 rounded-lg bg-white-800 border border-indigo-700/50 text-black focus:outline-none focus:ring-2 focus:ring-violet-500 shadow-md"
           /> {/* :contentReference[oaicite:6]{index=6} */}
 
           {!isLogin && (
@@ -154,14 +154,14 @@ export default function AuthForm() {
                 name="phone"
                 placeholder="Phone"
                 required
-                className="w-full p-3 rounded-lg bg-gray-800 border border-indigo-700/50 text-white focus:outline-none focus:ring-2 focus:ring-violet-500 shadow-md"
+                className="w-full p-3 rounded-lg bg-white-800 border border-indigo-700/50 text-black focus:outline-none focus:ring-2 focus:ring-violet-500 shadow-md"
               />
               <input
                 type="text"
                 name="username"
                 placeholder="Username"
                 required
-                className="w-full p-3 rounded-lg bg-gray-800 border border-indigo-700/50 text-white focus:outline-none focus:ring-2 focus:ring-violet-500 shadow-md"
+                className="w-full p-3 rounded-lg bg-white-800 border border-indigo-700/50 text-black focus:outline-none focus:ring-2 focus:ring-violet-500 shadow-md"
               />
             </>
           )}
@@ -171,12 +171,12 @@ export default function AuthForm() {
             name="password"
             placeholder="Password"
             required
-            className="w-full p-3 rounded-lg bg-gray-800 border border-indigo-700/50 text-white focus:outline-none focus:ring-2 focus:ring-violet-500 shadow-md"
+            className="w-full p-3 rounded-lg bg-white-800 border border-indigo-700/50 text-black focus:outline-none focus:ring-2 focus:ring-violet-500 shadow-md"
           />
 
           <button
             type="submit"
-            className="w-full p-3 bg-gradient-to-r from-violet-600 to-blue-600 rounded-lg font-medium text-white flex items-center justify-center gap-2 shadow-lg shadow-violet-700/30"
+            className="w-full p-3 bg-gradient-to-r from-violet-500 to-violet-500 rounded-lg font-medium text-white flex items-center justify-center gap-2 shadow-lg shadow-violet-700/30"
           >
             <LogIn size={18} />
             {isLogin ? "Login" : "Sign Up"}
@@ -184,7 +184,7 @@ export default function AuthForm() {
         </form>
           <GoogleLogin onSuccess={(val) => handleGoogleSubmit(val)}/>
         {/* Toggle Link */}
-        <p className="text-gray-300 text-sm">
+        <p className="text-gray-600 text-sm">
           {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
           <button onClick={toggleForm} className="text-violet-400 hover:underline">
             {isLogin ? "Sign up" : "Login"}

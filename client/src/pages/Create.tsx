@@ -112,16 +112,16 @@ export default function CreateStoryScreen() {
     childInterests.find((opt) => opt.id === childInterest)?.name || "";
 
   return (
-    <div className="flex flex-col h-full bg-gradient-to-b from-gray-900 to-indigo-950 text-white">
+    <div className="flex flex-col h-full bg-violet-100 text-white">
       <header className="p-4 border-b border-indigo-900/50 flex justify-between items-center">
         <button onClick={() => navigate("/home")} className="text-indigo-300">
           <ArrowLeft className="h-6 w-6" />
         </button>
-        <h1 className="text-xl font-bold">Create your own Soul Story</h1>
+        <h1 className="text-xl font-bold text-black">Create your own Soul Story</h1>
         <div ref={dropdownRef} className="relative">
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="w-8 h-8 rounded-full bg-indigo-900/50 flex items-center justify-center text-indigo-300 font-semibold shadow-md"
+            className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-indigo-800 font-semibold shadow-md"
           >
             {getInitials(userName)}
           </button>
@@ -141,7 +141,7 @@ export default function CreateStoryScreen() {
       <div className="flex-1 p-6 space-y-6 overflow-y-auto">
         {/* Child's Nickname Input */}
         <div>
-          <label className="block text-indigo-200 mb-2 font-medium">
+          <label className="block text-black mb-2 font-medium">
             Child's Nickname
           </label>
           <input
@@ -149,13 +149,13 @@ export default function CreateStoryScreen() {
             value={childNickname}
             onChange={(e) => setChildNickname(e.target.value)}
             placeholder="Enter child's nickname"
-            className="w-full rounded-lg p-3 bg-indigo-900/40 text-indigo-100 placeholder-indigo-400 shadow-md"
+            className="w-full rounded-lg p-3 bg-white text-black placeholder-black shadow-md"
           />
         </div>
 
         {/* Parent's Nickname Input */}
         <div>
-          <label className="block text-indigo-200 mb-2 font-medium">
+          <label className="block text-black mb-2 font-medium">
             Parent's Nickname
           </label>
           <input
@@ -163,16 +163,16 @@ export default function CreateStoryScreen() {
             value={parentNickname}
             onChange={(e) => setParentNickname(e.target.value)}
             placeholder="Enter parent's nickname"
-            className="w-full rounded-lg p-3 bg-indigo-900/40 text-indigo-100 placeholder-indigo-400 shadow-md"
+            className="w-full rounded-lg p-3 bg-white text-black placeholder-black shadow-md"
           />
         </div>
 
         {/* Parent's Interest Selection */}
         <div>
-          <label className="block text-indigo-200 mb-2 font-medium">
+          <label className="block text-black mb-2 font-medium">
             {parentNickname ? `${parentNickname}'s Interest` : "Parent's Interest"}
           </label>
-          <div className="bg-indigo-900/40 rounded-lg p-1 shadow-md">
+          <div className="bg-white rounded-lg p-2 shadow-md">
             <div className="grid grid-cols-2 gap-2">
               {parentInterests.map((opt) => (
                 <button
@@ -180,8 +180,8 @@ export default function CreateStoryScreen() {
                   onClick={() => setParentInterest(opt.id)}
                   className={`p-3 rounded-lg text-left text-sm ${
                     parentInterest === opt.id
-                      ? "bg-gradient-to-r from-violet-600 to-blue-600 text-white shadow-md"
-                      : "bg-indigo-800/50 text-indigo-200"
+                      ? "bg-violet-400 text-white shadow-md"
+                      : "bg-purple-50 text-black"
                   }`}
                 >
                   {opt.name}
@@ -193,10 +193,10 @@ export default function CreateStoryScreen() {
 
         {/* Child's Interest Selection */}
         <div>
-          <label className="block text-indigo-200 mb-2 font-medium">
+          <label className="block text-black font-medium">
             {childNickname ? `${childNickname}'s Interest` : "Child's Interest"}
           </label>
-          <div className="bg-indigo-900/40 rounded-lg p-1 shadow-md">
+          <div className="bg-white rounded-lg p-1 shadow-md">
             <div className="grid grid-cols-2 gap-2">
               {childInterests.map((opt) => (
                 <button
@@ -204,8 +204,8 @@ export default function CreateStoryScreen() {
                   onClick={() => setChildInterest(opt.id)}
                   className={`p-3 rounded-lg text-left text-sm ${
                     childInterest === opt.id
-                      ? "bg-gradient-to-r from-violet-600 to-blue-600 text-white shadow-md"
-                      : "bg-indigo-800/50 text-indigo-200"
+                      ? "bg-violet-400 text-white shadow-md"
+                      : "bg-purple-50 text-black"
                   }`}
                 >
                   {opt.name}
@@ -230,8 +230,8 @@ export default function CreateStoryScreen() {
           }}
           className={`w-full p-4 rounded-lg font-medium flex items-center justify-center gap-2 shadow-lg ${
             canGenerate
-              ? "bg-gradient-to-r from-violet-600 to-blue-600 text-white shadow-violet-700/30"
-              : "bg-indigo-900/50 text-indigo-400"
+              ? "bg-violet-400 text-white font-extrabold shadow-violet-700/30"
+              : "bg-violet-200 font-extrabold text-white"
           }`}
         >
           <BookOpen size={18} />

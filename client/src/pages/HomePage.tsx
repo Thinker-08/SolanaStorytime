@@ -84,7 +84,7 @@ const HomePage = () => {
   }, []);
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-b from-gray-900 to-indigo-950 text-white">
+    <div className="flex flex-col min-h-screen bg-violet-100 text-white">
       {/* Header */}
       <header className="p-4 border-b border-indigo-900/50 flex justify-between items-center">
         <div className="flex items-center gap-2">
@@ -94,16 +94,16 @@ const HomePage = () => {
           </h1>
         </div>
         <div className="flex items-center gap-3">
-          <button className="p-2 rounded-full bg-indigo-900/50 shadow-md">
-            <History className="h-5 w-5 text-violet-300" />
+          <button className="p-2 rounded-full bg-white shadow-md">
+            <History className="h-5 w-5 text-violet-800" />
           </button>
-          <button className="p-2 rounded-full bg-indigo-900/50 shadow-md">
+          <button className="p-2 rounded-full bg-white shadow-md">
             <Sun className="h-5 w-5 text-yellow-400" />
           </button>
           <div ref={dropdownRef} className="relative">
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="w-8 h-8 rounded-full bg-indigo-900/50 flex items-center justify-center text-indigo-300 font-semibold shadow-md"
+              className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-violet-800 font-semibold shadow-md"
             >
               {getInitials(userName)}
             </button>
@@ -124,8 +124,8 @@ const HomePage = () => {
       {/* Main Content */}
       <div className="flex-1 p-6 space-y-6 overflow-y-auto">
         <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold">Welcome, Parent!</h2>
-          <p className="text-indigo-200">
+          <h2 className="text-2xl font-black text-black text-bold"><b>Welcome, Parent!</b></h2>
+          <p className="text-black">
             Create magical stories for your little ones
           </p>
         </div>
@@ -134,14 +134,14 @@ const HomePage = () => {
           {/* Create New Story */}
           <button
             onClick={() => navigate("/create")}
-            className="p-6 rounded-xl bg-gradient-to-br from-violet-900 to-indigo-900 border border-violet-500/30 flex items-center gap-4 hover:shadow-lg transition-all shadow-lg"
+            className="p-6 rounded-xl bg-white border border-violet-500/30 flex items-center gap-4 hover:shadow-lg transition-all shadow-lg"
           >
             <div className="p-3 bg-violet-500/30 rounded-lg shadow-inner">
-              <Plus size={24} className="text-violet-300" />
+              <Plus size={24} className="text-violet-800" />
             </div>
             <div className="text-left">
-              <h3 className="font-bold">Create New Story</h3>
-              <p className="text-indigo-200 text-sm">
+              <h3 className="font-extrabold text-black">Create New Story</h3>
+              <p className="text-black text-sm">
                 Choose characters & concepts
               </p>
             </div>
@@ -150,14 +150,14 @@ const HomePage = () => {
           {/* Story Assistant */}
           <button
             onClick={() => navigate("/chat")}
-            className="p-6 rounded-xl bg-gradient-to-br from-blue-900 to-indigo-900 border border-blue-500/30 flex items-center gap-4 hover:shadow-lg transition-all shadow-lg"
+            className="p-6 rounded-xl bg-white border border-blue-500/30 flex items-center gap-4 hover:shadow-lg transition-all shadow-lg"
           >
-            <div className="p-3 bg-blue-500/30 rounded-lg shadow-inner">
-              <MessageSquare size={24} className="text-blue-300" />
+            <div className="p-3 bg-violet-500/30 rounded-lg shadow-inner">
+              <MessageSquare size={24} className="text-violet-800" />
             </div>
             <div className="text-left">
-              <h3 className="font-bold">Story Assistant</h3>
-              <p className="text-indigo-200 text-sm">
+              <h3 className="font-bold text-black">Story Assistant</h3>
+              <p className="text-black text-sm">
                 Chat for custom stories
               </p>
             </div>
@@ -166,14 +166,14 @@ const HomePage = () => {
           {/* Story Library */}
           <button
             onClick={() => navigate("/library")}
-            className="p-6 rounded-xl bg-gradient-to-br from-purple-900 to-indigo-900 border border-purple-500/30 flex items-center gap-4 hover:shadow-lg transition-all shadow-lg"
+            className="p-6 rounded-xl bg-white border border-purple-500/30 flex items-center gap-4 hover:shadow-lg transition-all shadow-lg"
           >
-            <div className="p-3 bg-purple-500/30 rounded-lg shadow-inner">
-              <Library size={24} className="text-purple-300" />
+            <div className="p-3 bg-violet-500/30 rounded-lg shadow-inner">
+              <Library size={24} className="text-violet-800" />
             </div>
             <div className="text-left">
-              <h3 className="font-bold">Story Library</h3>
-              <p className="text-indigo-200 text-sm">
+              <h3 className="font-bold text-black">Story Library</h3>
+              <p className="text-black text-sm">
                 Browse pre-made stories
               </p>
             </div>
@@ -182,18 +182,18 @@ const HomePage = () => {
       </div>
 
       {/* Bottom Navigation */}
-      <nav className="grid grid-cols-3 border-t border-indigo-900/50">
+      <nav className="grid grid-cols-3 bg-white">
         <button className="p-4 flex flex-col items-center justify-center text-violet-400">
-          <Home size={20} />
-          <span className="text-xs mt-1">Home</span>
+          <Home size={20} className="text-violet-800"/>
+          <span className="text-xs mt-1 text-violet-800">Home</span>
         </button>
         <button className="p-4 flex flex-col items-center justify-center text-indigo-300">
-          <Star size={20} />
-          <span className="text-xs mt-1">Favorites</span>
+          <Star size={20} className="text-violet-800"/>
+          <span className="text-xs mt-1 text-violet-800">Favorites</span>
         </button>
         <button className="p-4 flex flex-col items-center justify-center text-indigo-300">
-          <Book size={20} />
-          <span className="text-xs mt-1">History</span>
+          <Book size={20} className="text-violet-800"/>
+          <span className="text-xs mt-1 text-violet-800">History</span>
         </button>
       </nav>
     </div>

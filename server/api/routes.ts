@@ -407,7 +407,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(401).json({ message: "Unauthorized" });
     }
     try {
-      const stories = await storage.getAllLibraryStories();
+      const stories = await storage.getAllLibraryStoriesForUser(userId);
       const formattedStories = stories.map((story: any) => ({
         id: story._id,
         title: story.title,
@@ -513,6 +513,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const description = _.get(req, "body.description", "");
       const category = "Saved Stories";
       await storage.saveStory({
+        userId,
         title,
         description,
         category,

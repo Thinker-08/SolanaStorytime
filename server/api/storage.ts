@@ -162,8 +162,8 @@ async createUser(user: {
     return result[0]?.total || 0;
   }
   
-  async getAllLibraryStories(): Promise<[]> {
-    return Stories.find({}).lean<[]>().exec();
+  async getAllLibraryStoriesForUser(userId: number): Promise<[]> {
+    return Stories.find({ userId: { $in: [userId, 1] } }).lean<[]>().exec();
   }
 
   async saveFeedback({
@@ -191,15 +191,18 @@ async createUser(user: {
   }
 
   async saveStory({
+    userId,
     title,
     description,
     category,
   }: {
+    userId: Number;
     title: string;
     description: string;
     category: string;
   }): Promise<void> {
     const story = new Stories({
+      userId,
       title,
       description,
       category,

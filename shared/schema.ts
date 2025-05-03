@@ -71,6 +71,11 @@ export const Message = mongoose.model('Message', messageSchema);
 
 // === STORIES SCHEMA ===
 const storySchema = new mongoose.Schema({
+  userId: {
+    type: Number,
+    required: true,
+    ref: "User",
+  },
   title: {
     type: String,
     required: true,

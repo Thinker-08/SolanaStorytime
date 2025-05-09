@@ -166,6 +166,10 @@ async createUser(user: {
     return Stories.find({ userId: { $in: [userId, 1] } }).lean<[]>().exec();
   }
 
+  async getUserGenerateStoriesCount(userId: number): Promise<number> {
+    return Stories.countDocuments({ userId: { $in: [userId] } }).exec();
+  }
+
   async saveFeedback({
     feedbackCode,
     comment,

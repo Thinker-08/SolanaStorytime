@@ -554,7 +554,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
   );
-  
+
+  app.get("/my-stories-count", authMiddleware, async (req: AuthRequest, res: Response) => {
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    const stories = await storage.getUserGenerateStoriesCount(userId);
+    return res.json({ count: stories });
+  });
 
   const httpServer = createServer(app);
   return httpServer;

@@ -7,16 +7,23 @@ import { useToast } from "../hooks/use-toast";
 import { apiRequest } from "../lib/queryClient";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import Lottie from 'lottie-react';
+import Lottie from "lottie-react";
+import TextToSpeech from "../components/TextToSpeech";
 
 // Helper to collapse extra spaces and inject proper markdown breaks
 function formatStory(text: string): string {
   return text
-    .replace(/ {2,}/g, ' ')                              // collapse multiple spaces
-    .replace(/\*\*\s*Title\s*:\s*(.+?)\s*\*\*/g, '\n\n## $1\n\n')
-    .replace(/---/g, '\n\n---\n\n')                  // rules
-    .replace(/###\s*Summary\s*for\s*Kids\s*:/gi, '\n\n### Summary for Kids:\n\n')
-    .replace(/\*\*[\s\S]+For\s*Parents[\s\S]*$/m, match => `\n\n${match.trim()}\n\n`)
+    .replace(/ {2,}/g, " ") // collapse multiple spaces
+    .replace(/\*\*\s*Title\s*:\s*(.+?)\s*\*\*/g, "\n\n## $1\n\n")
+    .replace(/---/g, "\n\n---\n\n") // rules
+    .replace(
+      /###\s*Summary\s*for\s*Kids\s*:/gi,
+      "\n\n### Summary for Kids:\n\n"
+    )
+    .replace(
+      /\*\*[\s\S]+For\s*Parents[\s\S]*$/m,
+      (match) => `\n\n${match.trim()}\n\n`
+    )
     .trim();
 }
 
@@ -39,22 +46,46 @@ export default function Story() {
   const [rawStory, setRawStory] = useState<string>("");
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
   const [comment, setComment] = useState<string>("");
-  const [selectedFeedbackCode, setSelectedFeedbackCode] = useState<number | null>(null);
+  const [selectedFeedbackCode, setSelectedFeedbackCode] = useState<
+    number | null
+  >(null);
 
   const feedbackOptions = [
-    { code: 1, src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/lywu9ibb3gm2alhvcvzh.png", alt: "Loved it!!" },
-    { code: 2, src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/fkmkhqoa6xyi80a7cwpk.png", alt: "Felt connected" },
-    { code: 3, src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/dsxdjj7qoekw5djcpsp1.png", alt: "It was okay" },
-    { code: 4, src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/chrwsxmqm7k0xk2jhorl.png", alt: "Didn't click" },
-    { code: 5, src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/tj0ukdvtp01rzyvadq0c.png", alt: "Needs Improvement" },
+    {
+      code: 1,
+      src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/lywu9ibb3gm2alhvcvzh.png",
+      alt: "Loved it!!",
+    },
+    {
+      code: 2,
+      src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/fkmkhqoa6xyi80a7cwpk.png",
+      alt: "Felt connected",
+    },
+    {
+      code: 3,
+      src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/dsxdjj7qoekw5djcpsp1.png",
+      alt: "It was okay",
+    },
+    {
+      code: 4,
+      src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/chrwsxmqm7k0xk2jhorl.png",
+      alt: "Didn't click",
+    },
+    {
+      code: 5,
+      src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/tj0ukdvtp01rzyvadq0c.png",
+      alt: "Needs Improvement",
+    },
   ];
 
   // Load Lottie animation
   useEffect(() => {
-    fetch("https://res.cloudinary.com/dnzwzwnlg/raw/upload/v1745941973/bxzvidweal4petm3qlfs.json")
-      .then(res => res.json())
+    fetch(
+      "https://res.cloudinary.com/dnzwzwnlg/raw/upload/v1745941973/bxzvidweal4petm3qlfs.json"
+    )
+      .then((res) => res.json())
       .then(setAnimationData)
-      .catch(err => console.error("Failed to load Lottie:", err));
+      .catch((err) => console.error("Failed to load Lottie:", err));
   }, []);
 
   // Stream the story whenever `prompt` changes
@@ -71,15 +102,18 @@ export default function Story() {
 
     (async () => {
       try {
-        const res = await fetch("https://solana-storytime.vercel.app/api/story-generate", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ message: prompt }),
-          signal: controller.signal,
-        });
+        const res = await fetch(
+          "https://solana-storytime.vercel.app/api/story-generate",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ message: prompt }),
+            signal: controller.signal,
+          }
+        );
 
         if (!res.ok || !res.body) {
           throw new Error("Network response was not OK");
@@ -111,7 +145,7 @@ export default function Story() {
               firstChunk = false;
             }
             console.log(data);
-            setRawStory(prev => prev + data);
+            setRawStory((prev) => prev + data);
           }
         }
       } catch (err: any) {
@@ -141,15 +175,26 @@ export default function Story() {
       { storyPrompt: prompt, feedbackCode: selectedFeedbackCode, comment },
       { Authorization: `Bearer ${token}` }
     )
-      .then(() => toast({ title: "Thanks!", description: "Your feedback has been submitted." }))
-      .catch(() => toast({ title: "Error", description: "Could not submit feedback.", variant: "destructive" }));
+      .then(() =>
+        toast({
+          title: "Thanks!",
+          description: "Your feedback has been submitted.",
+        })
+      )
+      .catch(() =>
+        toast({
+          title: "Error",
+          description: "Could not submit feedback.",
+          variant: "destructive",
+        })
+      );
   };
 
   // Save to library
   const handleSaveToLibrary = () => {
     const titleMatch = rawStory.match(/##\s*(.+?)\n\n/);
     const title = titleMatch ? titleMatch[1].trim() : null;
-    const description = rawStory.replace(/##\s*.+?\n\n/, '').trim();
+    const description = rawStory.replace(/##\s*.+?\n\n/, "").trim();
 
     apiRequest(
       "POST",
@@ -157,8 +202,16 @@ export default function Story() {
       { title, description },
       { Authorization: `Bearer ${token}` }
     )
-      .then(() => toast({ title: "Saved!", description: "Story is now in your library." }))
-      .catch(() => toast({ title: "Error", description: "Could not save the story.", variant: "destructive" }));
+      .then(() =>
+        toast({ title: "Saved!", description: "Story is now in your library." })
+      )
+      .catch(() =>
+        toast({
+          title: "Error",
+          description: "Could not save the story.",
+          variant: "destructive",
+        })
+      );
   };
 
   if (!animationData) return <div>Loading animation…</div>;
@@ -188,34 +241,48 @@ export default function Story() {
           </div>
         ) : (
           <div className="bg-white p-4 rounded-2xl shadow-md text-black text-lg whitespace-pre-wrap">
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            components={{
-              // Override how <strong> is rendered:
-              strong: ({ node, ...props }) => (
-                <strong className="font-bold text-xl text-black" {...props} />
-              ),
-            }}
-          >
-            {rawStory ? formatStory(rawStory) : prompt}
-          </ReactMarkdown>
-
-
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                // Override how <strong> is rendered:
+                strong: ({ node, ...props }) => (
+                  <strong className="font-bold text-xl text-black" {...props} />
+                ),
+              }}
+            >
+              {rawStory ? formatStory(rawStory) : prompt}
+            </ReactMarkdown>
+              <TextToSpeech text={rawStory} isVisible={true}/>
             {/* Feedback Form */}
-            <form onSubmit={handleSubmit} className="p-4 border-t border-indigo-900/50 space-y-4">
+            <form
+              onSubmit={handleSubmit}
+              className="p-4 border-t border-indigo-900/50 space-y-4"
+            >
               <h2 className="text-lg font-bold">Feedback</h2>
-              <div className="flex flex-wrap gap-4 justify-center mb-4">
-                {feedbackOptions.map(({ code, src, alt }) => (
-                  <button
-                    key={code}
-                    type="button"
-                    onClick={() => setSelectedFeedbackCode(code)}
-                    className={`flex flex-col items-center gap-2 p-4 rounded-lg transition ${selectedFeedbackCode === code ? "bg-violet-400" : "hover:bg-purple-200"}`}>
-                    <img src={src} alt={alt} className="w-12 h-12 object-contain" />
-                    <p className="text-sm md:text-base text-center">{alt}</p>
-                  </button>
-                ))}
+              <div className="overflow-x-auto">
+                <div className="flex gap-4 mb-4 w-max px-2">
+                  {feedbackOptions.map(({ code, src, alt }) => (
+                    <button
+                      key={code}
+                      type="button"
+                      onClick={() => setSelectedFeedbackCode(code)}
+                      className={`flex flex-col items-center gap-2 p-4 rounded-lg transition ${
+                        selectedFeedbackCode === code
+                          ? "bg-violet-400"
+                          : "hover:bg-purple-200"
+                      }`}
+                    >
+                      <img
+                        src={src}
+                        alt={alt}
+                        className="w-12 h-12 object-contain"
+                      />
+                      <p className="text-sm md:text-base text-center">{alt}</p>
+                    </button>
+                  ))}
+                </div>
               </div>
+
               <textarea
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
@@ -227,16 +294,18 @@ export default function Story() {
                 disabled={selectedFeedbackCode === null && !comment.trim()}
                 className={`w-full p-3 rounded-lg text-white font-medium flex items-center justify-center gap-2 shadow-lg transition ${
                   selectedFeedbackCode !== null || comment.trim()
-              ? "bg-violet-400 text-white font-extrabold shadow-violet-700/30"
-              : "bg-violet-200 font-extrabold text-white"
-                }`}>
+                    ? "bg-violet-400 text-white font-extrabold shadow-violet-700/30"
+                    : "bg-violet-200 font-extrabold text-white"
+                }`}
+              >
                 Submit Feedback
               </button>
             </form>
 
             <button
               onClick={handleSaveToLibrary}
-              className="w-full mt-4 p-3 rounded-lg text-white font-medium flex items-center justify-center gap-2 shadow-lg transition bg-gradient-to-r from-violet-600 to-blue-600 shadow-violet-700/30">
+              className="w-full mt-4 p-3 rounded-lg text-white font-medium flex items-center justify-center gap-2 shadow-lg transition bg-gradient-to-r from-violet-600 to-blue-600 shadow-violet-700/30"
+            >
               Save to Library
             </button>
           </div>

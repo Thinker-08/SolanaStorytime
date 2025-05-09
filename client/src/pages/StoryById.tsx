@@ -8,6 +8,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useLocation } from "wouter";
 import { jwtDecode } from "jwt-decode";
+import TextToSpeech from "../components/TextToSpeech";
 
 type TokenPayload = {
   id: number;
@@ -182,6 +183,7 @@ export default function Story() {
             <h2 className="text-3xl font-bold text-center mb-6 text-black">{story.title}</h2>
             <div className="bg-white p-4 rounded-2xl shadow-md text-lg whitespace-pre-wrap text-black">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{story.description}</ReactMarkdown>
+              <TextToSpeech text={story.description} isVisible={true}/>
             </div>
           </>
         ) : (

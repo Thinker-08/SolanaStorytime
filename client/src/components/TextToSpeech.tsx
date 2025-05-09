@@ -1,153 +1,172 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "../components/ui/button";
 import { Volume2, VolumeX, Pause } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../components/ui/tooltip";
 
 interface TextToSpeechProps {
   text: string;
   isVisible: boolean;
 }
 
-const TextToSpeech = ({ text, isVisible }: TextToSpeechProps) => {
+export default function TextToSpeech({ text, isVisible }: TextToSpeechProps) {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [utterance, setUtterance] = useState<SpeechSynthesisUtterance | null>(null);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [isSupported, setIsSupported] = useState(true);
 
-  // Initialize speech synthesis
+  // Track if current playback is via API audio
+  const [isUsingApi, setIsUsingApi] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  // Load voices
   useEffect(() => {
-    if (typeof window !== "undefined" && window.speechSynthesis) {
-      // Get available voices
-      const updateVoices = () => {
-        setVoices(window.speechSynthesis.getVoices());
-      };
-
-      // Chrome loads voices asynchronously
-      if (window.speechSynthesis.onvoiceschanged !== undefined) {
-        window.speechSynthesis.onvoiceschanged = updateVoices;
-      }
-      
-      updateVoices();
-    } else {
+    if (!window.speechSynthesis) {
       setIsSupported(false);
+      return;
     }
-
-    return () => {
-      if (window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-      }
-    };
+    const update = () => setVoices(window.speechSynthesis.getVoices());
+    window.speechSynthesis.onvoiceschanged = update;
+    update();
+    return () => window.speechSynthesis.cancel();
   }, []);
 
-  // Create a new utterance when text changes
+  // Prepare utterance on text/voices change
   useEffect(() => {
     if (!window.speechSynthesis) return;
-    
-    const newUtterance = new SpeechSynthesisUtterance(text);
-    
-    // Try to find a child-friendly, female voice
-    const preferredVoice = voices.find(
-      voice => 
-        (voice.name.includes("female") || 
-         voice.name.includes("girl") || 
-         voice.name.includes("Female") ||
-         voice.name.toLowerCase().includes("samantha")) && 
-        voice.lang.includes("en")
+    const u = new SpeechSynthesisUtterance(text);
+    const pref = voices.find(v =>
+      /female|girl|samantha/i.test(v.name) && v.lang.startsWith("en")
     );
-    
-    if (preferredVoice) {
-      newUtterance.voice = preferredVoice;
-    }
-    
-    // Set moderate rate and pitch - suitable for children's stories
-    newUtterance.rate = 0.9;
-    newUtterance.pitch = 1.1;
-    
-    newUtterance.onend = () => {
+    if (pref) u.voice = pref;
+    u.rate = 0.9;
+    u.pitch = 1.1;
+    u.onend = () => {
       setIsSpeaking(false);
       setIsPaused(false);
+      setIsUsingApi(false);
     };
-
-    setUtterance(newUtterance);
-    
-    return () => {
-      window.speechSynthesis.cancel();
-    };
+    setUtterance(u);
+    return () => window.speechSynthesis.cancel();
   }, [text, voices]);
 
-  const toggleSpeech = () => {
-    if (!utterance || !window.speechSynthesis) return;
-
-    if (isSpeaking) {
-      if (isPaused) {
-        window.speechSynthesis.resume();
-        setIsPaused(false);
-      } else {
-        window.speechSynthesis.pause();
-        setIsPaused(true);
+  // Stop everything
+  const stopSpeech = () => {
+    if (isUsingApi) {
+      audioRef.current?.pause();
+      if (audioRef.current?.src.startsWith("blob:")) {
+        URL.revokeObjectURL(audioRef.current.src);
       }
     } else {
-      window.speechSynthesis.cancel(); // Cancel any ongoing speech
-      window.speechSynthesis.speak(utterance);
-      setIsSpeaking(true);
-      setIsPaused(false);
+      window.speechSynthesis.cancel();
     }
+    setIsSpeaking(false);
+    setIsPaused(false);
+    setIsUsingApi(false);
   };
 
-  const stopSpeech = () => {
-    if (window.speechSynthesis) {
-      window.speechSynthesis.cancel();
-      setIsSpeaking(false);
+  // Toggle: either start or pause/resume
+  const toggleSpeech = async () => {
+    if (!isSpeaking) {
+      // Start new playback
+      setIsSpeaking(true);
       setIsPaused(false);
+
+      try {
+        // Try API
+        const resp = await fetch("/api/text-to-speech-speak", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text }),
+        });
+        if (!resp.ok || !resp.headers.get("content-type")?.includes("audio")) {
+          throw new Error("No audio");
+        }
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        audioRef.current!.src = url;
+        setIsUsingApi(true);
+        await audioRef.current!.play();
+        audioRef.current!.onended = () => stopSpeech();
+        return;
+      } catch (e) {
+        // Fallback to browser TTS
+        setIsUsingApi(false);
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(utterance!);
+      }
+    } else {
+      // Already speaking → pause/resume if browser TTS, or stop if API
+      if (isUsingApi) {
+        stopSpeech();
+      } else {
+        if (isPaused) {
+          window.speechSynthesis.resume();
+          setIsPaused(false);
+        } else {
+          window.speechSynthesis.pause();
+          setIsPaused(true);
+        }
+      }
     }
   };
 
   if (!isSupported || !isVisible) return null;
 
+  const { label, icon } = !isSpeaking
+    ? { label: "Listen", icon: <Volume2 className="h-4 w-4 mr-1" /> }
+    : isUsingApi
+      ? { label: "Stop", icon: <VolumeX className="h-4 w-4 mr-1" /> }
+      : isPaused
+        ? { label: "Resume", icon: <Volume2 className="h-4 w-4 mr-1" /> }
+        : { label: "Pause", icon: <Pause className="h-4 w-4 mr-1" /> };
+
   return (
     <TooltipProvider>
-      <div className="flex items-center space-x-2">
+      <audio ref={audioRef} hidden />
+      <div className="flex items-center gap-2">
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
               onClick={toggleSpeech}
               variant="outline"
               size="sm"
-              className="h-8 w-8 p-0 rounded-full bg-primary bg-opacity-10 hover:bg-opacity-20 border-primary border-opacity-20"
+              className="flex items-center gap-1 h-8 px-3 rounded-full bg-primary bg-opacity-10 hover:bg-opacity-20 border-primary border-opacity-20"
             >
-              {isSpeaking && !isPaused ? (
-                <Pause className="h-4 w-4 text-primary" />
-              ) : (
-                <Volume2 className="h-4 w-4 text-primary" />
-              )}
+              {icon}
+              <span className="text-xs text-white">{label}</span>
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            <p>{isSpeaking ? (isPaused ? "Resume story" : "Pause story") : "Read story aloud"}</p>
+            <p>{label}</p>
           </TooltipContent>
         </Tooltip>
 
-        {isSpeaking && (
+        {/* Show a dedicated Stop when using browser TTS */}
+        {isSpeaking && !isUsingApi && (
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 onClick={stopSpeech}
                 variant="outline"
                 size="sm"
-                className="h-8 w-8 p-0 rounded-full bg-destructive bg-opacity-10 hover:bg-opacity-20 border-destructive border-opacity-20"
+                className="flex items-center gap-1 h-8 px-3 rounded-full bg-destructive bg-opacity-10 hover:bg-opacity-20 border-destructive border-opacity-20"
               >
-                <VolumeX className="h-4 w-4 text-destructive" />
+                <VolumeX className="h-4 w-4" />
+                <span className="text-xs text-white">Stop</span>
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Stop reading</p>
+              <p>Stop</p>
             </TooltipContent>
           </Tooltip>
         )}
       </div>
     </TooltipProvider>
   );
-};
-
-export default TextToSpeech;
+}

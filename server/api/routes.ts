@@ -512,6 +512,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const title = _.get(req, "body.title", "");
       const description = _.get(req, "body.description", "");
       const category = "Saved Stories";
+      console.log(title, description, category);
+      //if (!title) generate title 
       await storage.saveStory({
         userId,
         title,

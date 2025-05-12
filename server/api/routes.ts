@@ -13,6 +13,7 @@ import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { knowledgeBase } from "./knowledgeBase.js";
 import { z } from "zod";
+import { v4 as uuid } from "uuid";
 
 dotenv.config();
 const ELEVENLABS_API_KEY =
@@ -28,16 +29,16 @@ type TokenPayload = {
 };
 
 type GoogleTokenPayload = {
-  aud: string; 
-  azp: string; 
-  email: string; 
-  email_verified: boolean; 
-  exp: number; 
+  aud: string;
+  azp: string;
+  email: string;
+  email_verified: boolean;
+  exp: number;
   family_name: string;
-  given_name: string; 
-  iat: number; 
-  iss: string; 
-  jti: string; 
+  given_name: string;
+  iat: number;
+  iss: string;
+  jti: string;
   name: string;
   nbf: number;
   picture: string;
@@ -75,7 +76,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const authMiddleware = (
     req: AuthRequest,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) => {
     const authHeader = req.headers.authorization;
 
@@ -121,7 +122,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const chatHistory = await storage.getChatHistory(
           userId,
           Number(page),
-          Number(perPage)
+          Number(perPage),
         );
         const totalCount = await storage.getChatHistoryCount(userId);
         const totalPages = Math.ceil(totalCount / Number(perPage));
@@ -146,7 +147,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .status(500)
           .json({ message: "Failed to retrieve chat history" });
       }
-    }
+    },
   );
 
   app.get(
@@ -156,13 +157,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const rawSession = req.query.sessionId;
 
-        // Narrow: if it's an array, pick the first element; if it's a ParsedQs, convert to string; else it’s undefined
-        const sessionId =
-        Array.isArray(rawSession)
+        // Narrow: if it's an array, pick the first element; if it's a ParsedQs, convert to string; else it's undefined
+        const sessionId = Array.isArray(rawSession)
           ? rawSession[0]
           : typeof rawSession === "string"
-          ? rawSession
-          : undefined;
+            ? rawSession
+            : undefined;
         const userId = req.userId;
         if (!sessionId || !userId) {
           return res.status(400).json({ message: "Session ID is required" });
@@ -200,7 +200,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .status(500)
           .json({ message: "Failed to retrieve chat session" });
       }
-    }
+    },
   );
 
   app.post(
@@ -260,7 +260,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             error instanceof Error ? error.message : "Failed to generate story",
         });
       }
-    }
+    },
   );
 
   // Text-to-Speech API endpoint - actual audio generation
@@ -296,7 +296,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           text: limitedText,
           model_id: "eleven_multilingual_v2",
           output_format: "mp3_44100_128",
-        }
+        },
       );
 
       // Set response headers for audio
@@ -364,9 +364,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       console.log(user);
-      const token = jwt.sign({ id: user.id, email: user.email, username: userName }, JWT_SECRET, {
-        expiresIn: "30d",
-      });
+      const token = jwt.sign(
+        { id: user.id, email: user.email, username: userName },
+        JWT_SECRET,
+        {
+          expiresIn: "30d",
+        },
+      );
       return res.status(200).json({ token });
     } catch (error) {
       console.error("Error in signup API:", error);
@@ -391,9 +395,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!isMatch) {
         return res.status(401).json({ message: "Invalid password" });
       }
-      const token = jwt.sign({ id: user.id, email: user.email, username: user.username }, JWT_SECRET, {
-        expiresIn: "30d",
-      });
+      const token = jwt.sign(
+        { id: user.id, email: user.email, username: user.username },
+        JWT_SECRET,
+        {
+          expiresIn: "30d",
+        },
+      );
       return res.status(200).json({ token });
     } catch (error) {
       console.error("Error in login API:", error);
@@ -401,49 +409,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/library-stories", authMiddleware, async (req: AuthRequest, res: Response) => {
-    const userId = req.userId;
-    if (!userId) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-    try {
-      const stories = await storage.getAllLibraryStoriesForUser(userId);
-      const formattedStories = stories.map((story: any) => ({
-        id: story._id,
-        title: story.title,
-        description: story.description,
-        createdAt: story.createdAt,
-        category: story.category,
-      }));
-      return res.json({ stories: formattedStories });
-    } catch (error) {
-      console.error("Error retrieving library stories:", error);
-      return res.status(500).json({ message: "Failed to retrieve stories" });
-    }
-  });
-
-  app.post("/submit-feedback", authMiddleware, async (req: AuthRequest, res: Response) => {
-    const userId = req.userId;
-    if (!userId) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-    try {
-      const feedbackCode = _.get(req, "body.feedbackCode", null);
-      const comment = _.get(req, "body.comment", "");
-      const storyPrompt = _.get(req, "body.storyPrompt", "");
-
-      if (feedbackCode || comment || storyPrompt) {
-        await storage.saveFeedback({feedbackCode, comment, storyPrompt, userId});
-        return res.status(200).json({ message: "Feedback submitted successfully" });
+  app.get(
+    "/library-stories",
+    authMiddleware,
+    async (req: AuthRequest, res: Response) => {
+      const userId = req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
       }
-      return res
-          .status(400)
-          .json({ message: "Feedback code, comment, and story prompt are required" });
-    } catch (err) {
-      console.error("Error submitting feedback:", err);
-      return res.status(500).json({ message: "Failed to submit feedback" });
-    }
-  })
+      try {
+        const stories = await storage.getAllLibraryStoriesForUser(userId);
+        const formattedStories = stories.map((story: any) => ({
+          id: story._id,
+          title: story.title,
+          description: story.description,
+          createdAt: story.createdAt,
+          category: story.category,
+        }));
+        return res.json({ stories: formattedStories });
+      } catch (error) {
+        console.error("Error retrieving library stories:", error);
+        return res.status(500).json({ message: "Failed to retrieve stories" });
+      }
+    },
+  );
+
+  app.post(
+    "/submit-feedback",
+    authMiddleware,
+    async (req: AuthRequest, res: Response) => {
+      const userId = req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      try {
+        const feedbackCode = _.get(req, "body.feedbackCode", null);
+        const comment = _.get(req, "body.comment", "");
+        const storyPrompt = _.get(req, "body.storyPrompt", "");
+
+        if (feedbackCode || comment || storyPrompt) {
+          await storage.saveFeedback({
+            feedbackCode,
+            comment,
+            storyPrompt,
+            userId,
+          });
+          return res
+            .status(200)
+            .json({ message: "Feedback submitted successfully" });
+        }
+        return res.status(400).json({
+          message: "Feedback code, comment, and story prompt are required",
+        });
+      } catch (err) {
+        console.error("Error submitting feedback:", err);
+        return res.status(500).json({ message: "Failed to submit feedback" });
+      }
+    },
+  );
 
   app.post("/google-login", async (req: Request, res: Response) => {
     try {
@@ -465,9 +488,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           password: "testtestetst123123123hahw3@",
         });
       }
-      const token = jwt.sign({ id: user.id, email: user.email, username: user.username }, JWT_SECRET, {
-        expiresIn: "30d",
-      });
+      const token = jwt.sign(
+        { id: user.id, email: user.email, username: user.username },
+        JWT_SECRET,
+        {
+          expiresIn: "30d",
+        },
+      );
       return res.status(200).json({ token });
     } catch (error) {
       console.error("Error in Google login API:", error);
@@ -475,76 +502,124 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/library-story", authMiddleware, async (req: AuthRequest, res: Response) => {
-    const userId = req.userId;
-    if (!userId) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-    try {
-      const storyId = _.get(req, "query.id", null);
-      if (!storyId) {
-        return res.status(400).json({ message: "Story ID is required" });
+  app.get(
+    "/library-story",
+    authMiddleware,
+    async (req: AuthRequest, res: Response) => {
+      const userId = req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
       }
-      const story = await storage.getLibraryStoryById(storyId);
-      if (!story) {
-        return res.status(404).json({ message: "Story not found" });
+      try {
+        const storyId = _.get(req, "query.id", null);
+        if (!storyId) {
+          return res.status(400).json({ message: "Story ID is required" });
+        }
+        const story = await storage.getLibraryStoryById(storyId);
+        if (!story) {
+          return res.status(404).json({ message: "Story not found" });
+        }
+        const formattedStory = {
+          id: story._id,
+          title: story.title,
+          description: story.description,
+          createdAt: story.createdAt,
+          category: story.category,
+        };
+        return res.json(formattedStory);
+      } catch (error) {
+        console.error("Error retrieving library story:", error);
+        return res.status(500).json({ message: "Failed to retrieve story" });
       }
-      const formattedStory = {
-        id: story._id,
-        title: story.title,
-        description: story.description,
-        createdAt: story.createdAt,
-        category: story.category,
-      };
-      return res.json(formattedStory);
-    } catch (error) {
-      console.error("Error retrieving library story:", error);
-      return res.status(500).json({ message: "Failed to retrieve story" });
-    }
-  });
+    },
+  );
 
-  app.post("/add-story-to-library", authMiddleware, async (req: AuthRequest, res: Response) => {
-    const userId = req.userId;
-    if (!userId) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-    try {
-      let title = _.get(req, "body.title", "");
-      const description = _.get(req, "body.description", "");
-      const category = "Saved Stories";
-      if (!title) title = await generateStory(`Create a title for this story \n \n ${description}`, []);
-      await storage.saveStory({
-        userId,
-        title,
-        description,
-        category,
-      });
-      return res.status(200).json({ message: "Story added to library" });
-    } catch (error) {
-      console.error("Error adding story to library:", error);
-      return res.status(500).json({ message: "Failed to add story to library" });
-    }
-  });
+  app.post(
+    "/add-story-to-library",
+    authMiddleware,
+    async (req: AuthRequest, res: Response) => {
+      const userId = req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      try {
+        let title = _.get(req, "body.title", "");
+        const description = _.get(req, "body.description", "");
+        const category = "Saved Stories";
+        if (!title)
+          title = await generateStory(
+            `Create a title for this story \n \n ${description}`,
+            [],
+          );
+        await storage.saveStory({
+          userId,
+          title,
+          description,
+          category,
+        });
+        return res.status(200).json({ message: "Story added to library" });
+      } catch (error) {
+        console.error("Error adding story to library:", error);
+        return res
+          .status(500)
+          .json({ message: "Failed to add story to library" });
+      }
+    },
+  );
+
 
   app.post(
     "/story-generate",
     authMiddleware,
     async (req: AuthRequest, res: Response) => {
       try {
+        const userId = req.userId;
+        if (!userId) {
+          return res.status(401).json({ message: "Unauthorized" });
+        }
         const { message } = req.body;
+        let sessionId = _.get(req, "query.sessionId", "");
+        let chatHistory: { role: string; content: string }[] = [];
+        let conversationHistory: {
+          role: "user" | "assistant" | "system";
+          content: string;
+        }[] = [];
   
         // Set headers for streaming
         res.setHeader("Content-Type", "text/event-stream");
         res.setHeader("Cache-Control", "no-cache");
         res.setHeader("Connection", "keep-alive");
   
+        // Handle sessionId logic
+        if (typeof sessionId === "string" && sessionId.length > 0) {
+          // Use existing session
+          chatHistory = await storage.getMessagesBySessionId(sessionId);
+        } else {
+          // Generate new sessionId and store it
+          sessionId = uuid();
+          // Return the new sessionId to the client
+          res.write(`event: sessionId\ndata: ${sessionId}\n\n`);
+        }
+
+        conversationHistory = chatHistory.map((msg) => ({
+          role: msg.role as "user" | "assistant" | "system",
+          content: msg.content,
+        }));
+
         let fullResponse = "";
   
-        for await (const chunk of generateStoryStream(message, [])) {
+        for await (const chunk of generateStoryStream(message, conversationHistory)) {
           fullResponse += chunk;
           res.write(`data: ${chunk}\n\n`);
         }
-  
+
+        await storage.saveMessage({
+          role: "assistant",
+          content: fullResponse,
+          sessionId,
+          userId,
+        });
+
         res.write("data: [DONE]\n\n");
         res.end();
       } catch (error) {
@@ -552,17 +627,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.write("data: [ERROR]\n\n");
         res.end();
       }
-    }
+    },
   );
 
-  app.get("/my-stories-count", authMiddleware, async (req: AuthRequest, res: Response) => {
-    const userId = req.userId;
-    if (!userId) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-    const stories = await storage.getUserGenerateStoriesCount(userId);
-    return res.json({ count: stories });
-  });
+  app.get(
+    "/my-stories-count",
+    authMiddleware,
+    async (req: AuthRequest, res: Response) => {
+      const userId = req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const stories = await storage.getUserGenerateStoriesCount(userId);
+      return res.json({ count: stories });
+    },
+  );
 
   const httpServer = createServer(app);
   return httpServer;

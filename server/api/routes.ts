@@ -643,6 +643,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   );
 
+  app.get("/user-preferences", authMiddleware, async (req: AuthRequest, res: Response) => {
+    try {
+      const userId = req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const preferences = await storage.getUserPreferences(userId);
+      return res.json({ data: preferences });
+    } catch (error) {
+      console.error("Error retrieving user preferences:", error);
+      return res.status(500).json({ message: "Failed to retrieve user preferences" });
+    }
+  });
+
+  app.post("/update-user-preferences", authMiddleware, async (req: AuthRequest, res: Response) => {
+    try {
+      const userId = req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const updatePreferences = req.body;
+      const { type: preferenceType, id, name } = updatePreferences;
+      const userPreferences = await storage.getUserPreferences(userId);
+      const updatedPreferences = {
+        ...userPreferences,
+        [preferenceType]: userPreferences[preferenceType].map((item: any) => item.id === id ? { ...item, name } : item),
+      };
+      await storage.updateUserPreferences(userId, updatedPreferences);
+      return res.json({ message: "User preferences updated successfully" });
+    } catch (err) {
+      console.log(err);
+      return res.status(500).json({ message: "Failed to update user preferences" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

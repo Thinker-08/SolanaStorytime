@@ -30,6 +30,78 @@ const userSchema = new mongoose.Schema({
   preferences: {
     type: Object,
     required: false,
+    default: {
+      parents_interest: [
+        {
+          id: 0,
+          name: "DeFi"
+        },
+        {
+          id: 1,
+          name: "NFTs"
+        },
+        {
+          id: 2,
+          name: "Tokenomics"
+        },
+        {
+          id: 3,
+          name: "Rug Pullers"
+        },
+        {
+          id: 4,
+          name: "Blockchain"
+        },
+        {
+          id: 5,
+          name: "Smart Contracts"
+        }
+      ],
+      children_interest: [
+        {
+          id: 0,
+          name: "Princess"
+        },
+        {
+          id: 1,
+          name: "Dragon"
+        },
+        {
+          id: 2,
+          name: "Space Explorer"
+        },
+        {
+          id: 3,
+          name: "Pirate"
+        },
+        {
+          id: 4,
+          name: "Fairy"
+        },
+        {
+          id: 5,
+          name: "Robot"
+        }
+      ],
+      themes: [
+        {
+          id: 0,
+          name: "Suspense"
+        },
+        {
+          id: 1,
+          name: "Comedy"
+        },
+        {
+          id: 2,
+          name: "Horror"
+        },
+        {
+          id: 3,
+          name: "Adventure"
+        },
+      ]
+    }
   }
 }, { timestamps: true });
 

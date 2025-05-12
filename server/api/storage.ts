@@ -213,6 +213,14 @@ async createUser(user: {
     });
     story.save();
   }
+
+  async getUserPreferences(userId: number): Promise<any> {
+    return User.findById(userId).select("preferences").lean().exec();
+  }
+
+  async updateUserPreferences(userId: number, preferences: any): Promise<void> {
+    await User.findByIdAndUpdate(userId, { $set: { preferences } }).exec();
+  }
 }
 
 export const storage = new MemStorage();

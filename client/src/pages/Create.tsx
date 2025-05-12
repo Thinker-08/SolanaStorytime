@@ -5,6 +5,7 @@ import { usePrompt } from "../context/PromptContext";
 import { useLocation } from "wouter";
 import { useAuth } from "../context/AuthContext";
 import { jwtDecode } from "jwt-decode";
+import { useStorySession } from "../context/StorySessionContext";
 
 type Option = { id: string; name: string };
 
@@ -24,6 +25,7 @@ const getInitials = (name: string) =>
     .toUpperCase();
 
 export default function CreateStoryScreen() {
+  const { clearStorySession } = useStorySession();
   const { setPrompt } = usePrompt();
   const [, navigate] = useLocation();
   const { token, setToken } = useAuth();
@@ -226,7 +228,9 @@ export default function CreateStoryScreen() {
               `${parentNickname} explores the world of ${parentInterestName}, ` +
               `while ${childNickname} embarks on an adventure as a ${childInterestName}.`;
             setPrompt(storyPrompt);
+            clearStorySession();
             navigate("/story");
+
           }}
           className={`w-full p-4 rounded-lg font-medium flex items-center justify-center gap-2 shadow-lg ${
             canGenerate

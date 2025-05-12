@@ -7,6 +7,7 @@ import Chat from "./pages/Chat";
 import HomePage from "./pages/HomePage";
 import Login from "./pages/Login";
 import { SessionProvider } from "./context/SessionContext";
+import { StorySessionProvider } from "./context/StorySessionContext";
 import Create from "./pages/Create";
 import Story from "./pages/Story";
 import { PromptProvider } from "./context/PromptContext";
@@ -34,6 +35,7 @@ function App() {
   return (
     <GoogleOAuthProvider clientId="507853580015-r8kq3f6b3gv88cafi26tvtmmti0rfhe6.apps.googleusercontent.com">
     <SessionProvider>
+      <StorySessionProvider>
       <AuthProvider>
        <PromptProvider>
       <QueryClientProvider client={queryClient}>
@@ -42,6 +44,7 @@ function App() {
       </QueryClientProvider>
       </PromptProvider>
       </AuthProvider>
+      </StorySessionProvider>
     </SessionProvider>
     </GoogleOAuthProvider>
   );

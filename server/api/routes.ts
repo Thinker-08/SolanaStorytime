@@ -688,7 +688,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { type: preferenceType, name } = req.body;
       console.log(userId);
       const userData = await storage.getUserPreferences(userId);
-      const userPreferences = userData.preference;
+      const userPreferences = userData.preferences;
       const updatedPreferences = {
         ...userPreferences,
         [preferenceType]: [...userPreferences[preferenceType], { id: uuid(), name }],

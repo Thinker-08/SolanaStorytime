@@ -215,7 +215,7 @@ async createUser(user: {
   }
 
   async getUserPreferences(id: number): Promise<any> {
-    return User.findOne({ id }).select("preferences").lean().exec();
+    return User.findOne({ id }).lean().exec();
   }
 
   async updateUserPreferences(userId: number, preferences: any): Promise<void> {

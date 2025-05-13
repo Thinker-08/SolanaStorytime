@@ -651,7 +651,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const data = await storage.getUserPreferences(userId);
       console.log(data);
-      return res.json({ data: data.preference });
+      return res.json({ data: data.preferences });
     } catch (error) {
       console.error("Error retrieving user preferences:", error);
       return res.status(500).json({ message: "Failed to retrieve user preferences" });

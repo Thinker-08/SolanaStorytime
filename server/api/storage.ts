@@ -219,7 +219,7 @@ async createUser(user: {
   }
 
   async updateUserPreferences(userId: number, preferences: any): Promise<void> {
-    await User.updateOne({id: userId}, { $set: { preference: preferences } }).exec();
+    await User.updateOne({id: userId}, { $set: { preferences } }).exec();
   }
 }
 

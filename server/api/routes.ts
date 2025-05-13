@@ -686,6 +686,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Unauthorized" });
       }
       const { type: preferenceType, name } = req.body;
+      console.log(userId);
       const userData = await storage.getUserPreferences(userId);
       const userPreferences = userData.preference;
       const updatedPreferences = {

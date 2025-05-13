@@ -214,8 +214,8 @@ async createUser(user: {
     story.save();
   }
 
-  async getUserPreferences(userId: number): Promise<any> {
-    return User.findById(userId).select("preferences").lean().exec();
+  async getUserPreferences(id: number): Promise<any> {
+    return User.findOne({ id }).select("preferences").lean().exec();
   }
 
   async updateUserPreferences(userId: number, preferences: any): Promise<void> {

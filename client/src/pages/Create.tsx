@@ -1,12 +1,13 @@
 // src/pages/Create.tsx
 import React, { useState, useEffect, useRef } from "react";
-import { ArrowLeft, BookOpen } from "lucide-react";
+import { ArrowLeft, BookOpen, Plus, Edit2, ArrowRight } from "lucide-react";
 import { usePrompt } from "../context/PromptContext";
 import { useLocation } from "wouter";
 import { useAuth } from "../context/AuthContext";
 import { jwtDecode } from "jwt-decode";
 import { useStorySession } from "../context/StorySessionContext";
 
+// Option type
 type Option = { id: string; name: string };
 
 type TokenPayload = {
@@ -32,8 +33,22 @@ export default function CreateStoryScreen() {
   const [userName, setUserName] = useState<string>("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [editMode, setEditMode] = useState(false);
+  const [newParentInterest, setNewParentInterest] = useState("");
+  const [newChildInterest, setNewChildInterest] = useState("");
+  const [newTheme, setNewTheme] = useState("");
 
-  // Auth validation on mount
+  // State for nicknames and selections
+  const [childNickname, setChildNickname] = useState("");
+  const [parentNickname, setParentNickname] = useState("");
+  const [parentInterest, setParentInterest] = useState("");
+  const [childInterest, setChildInterest] = useState("");
+  const [theme, setTheme] = useState("");
+  const [parentInterests, setParentInterests] = useState<Option[]>([]);
+  const [childInterests, setChildInterests] = useState<Option[]>([]);
+  const [themes, setThemes] = useState<Option[]>([]);
+
+  // Validate token & fetch preferences
   const validateToken = () => {
     const authToken = localStorage.getItem("authToken");
     if (!authToken) {
@@ -58,21 +73,22 @@ export default function CreateStoryScreen() {
   };
 
   useEffect(() => {
-    validateToken();
+    if (validateToken()) {
+      fetchUserPreferences();
+    }
   }, []);
 
+  // Logout handler
   const handleLogout = () => {
     localStorage.removeItem("authToken");
     setToken("");
     window.location.href = "/";
   };
 
-  // Close dropdown when clicking outside
+  // Click outside to close dropdown
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
-      if (
-        dropdownRef.current && !dropdownRef.current.contains(e.target as Node)
-      ) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setDropdownOpen(false);
       }
     };
@@ -80,41 +96,76 @@ export default function CreateStoryScreen() {
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
 
-  // State for nicknames and interests
-  const [childNickname, setChildNickname] = useState("");
-  const [parentNickname, setParentNickname] = useState("");
-  const [parentInterest, setParentInterest] = useState("");
-  const [childInterest, setChildInterest] = useState("");
+  // Fetch existing preferences
+  const fetchUserPreferences = async () => {
+    try {
+      const authToken = localStorage.getItem("authToken");
+      const res = await fetch(
+        "https://solana-storytime.vercel.app/api/user-preferences",
+        {
+          headers: { Authorization: `Bearer ${authToken}` },
+        }
+      );
+      if (!res.ok) throw new Error("Failed to fetch preferences");
+      const json = await res.json();
+      const prefs = json.data;
+      setParentInterests(prefs.parents_interest || []);
+      setChildInterests(prefs.children_interest || []);
+      setThemes(prefs.themes || []);
+    } catch (err) {
+      console.error("Error loading preferences:", err);
+    }
+  };
 
-  const parentInterests: Option[] = [
-    { id: "defi", name: "DeFi" },
-    { id: "tokenomics", name: "Tokenomics" },
-    { id: "rugpullers", name: "Rug Pullers" },
-    { id: "validators", name: "Validators" },
-    { id: "developers", name: "Developers" },
-    { id: "nft", name: "NFT" },
-  ];
+  // Add new preference helper
+  const addPreference = async (type: string, name: string) => {
+    try {
+      await fetch("https://solana-storytime.vercel.app/api/add-user-preference", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ type, name }),
+      });
+      await fetchUserPreferences();
+    } catch (err) {
+      console.error(`Failed to add ${type}:`, err);
+    }
+  };
 
-  const childInterests: Option[] = [
-    { id: "princess", name: "Princess" },
-    { id: "dragon", name: "Dragon" },
-    { id: "spacekid", name: "Space Explorer" },
-    { id: "pirate", name: "Pirate" },
-    { id: "fairy", name: "Fairy" },
-    { id: "robot", name: "Robot" },
-  ];
+  // Update existing preference helper
+  const updatePreference = async (type: string, id: string) => {
+    const newName = prompt("Enter new name:");
+    if (!newName) return;
+    try {
+      await fetch("https://solana-storytime.vercel.app/api/update-user-preferences", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ type, id, name: newName }),
+      });
+      await fetchUserPreferences();
+    } catch (err) {
+      console.error(`Failed to update ${type}:`, err);
+    }
+  };
 
   const canGenerate = Boolean(
-    childNickname && parentNickname && parentInterest && childInterest
+    childNickname && parentNickname && parentInterest && childInterest && theme
   );
 
   const parentInterestName =
     parentInterests.find((opt) => opt.id === parentInterest)?.name || "";
   const childInterestName =
     childInterests.find((opt) => opt.id === childInterest)?.name || "";
+  const themeName =
+    themes.find((opt) => opt.id === theme)?.name || "";
 
   return (
-    <div className="flex flex-col h-full bg-violet-100 text-white">
+    <div className="flex flex-col h-screen bg-violet-100 text-white">
       <header className="p-4 flex justify-between items-center bg-white">
         <button onClick={() => navigate("/home")} className="text-indigo-300">
           <ArrowLeft className="h-6 w-6 text-violet-400" />
@@ -141,7 +192,7 @@ export default function CreateStoryScreen() {
       </header>
 
       <div className="flex-1 p-6 space-y-6 overflow-y-auto">
-        {/* Child's Nickname Input */}
+        {/* Child Nickname */}
         <div>
           <label className="block text-black mb-2 font-medium">
             Child's Nickname
@@ -155,7 +206,7 @@ export default function CreateStoryScreen() {
           />
         </div>
 
-        {/* Parent's Nickname Input */}
+        {/* Parent Nickname */}
         <div>
           <label className="block text-black mb-2 font-medium">
             Parent's Nickname
@@ -169,51 +220,182 @@ export default function CreateStoryScreen() {
           />
         </div>
 
-        {/* Parent's Interest Selection */}
+        {/* Parent Interests */}
         <div>
           <label className="block text-black mb-2 font-medium">
             {parentNickname ? `${parentNickname}'s Interest` : "Parent's Interest"}
           </label>
-          <div className="bg-white rounded-lg p-2 shadow-md">
+          <div className="bg-white rounded-lg p-2 shadow-md space-y-2">
+            <div className="flex justify-end px-6">
+              <button
+                onClick={() => setEditMode(!editMode)}
+                className="text-sm text-indigo-800 underline"
+              >
+                {editMode ? 'Done' : 'Edit/Add'}
+              </button>
+            </div>
             <div className="grid grid-cols-2 gap-2">
               {parentInterests.map((opt) => (
-                <button
-                  key={opt.id}
-                  onClick={() => setParentInterest(opt.id)}
-                  className={`p-3 rounded-lg text-left text-sm ${
-                    parentInterest === opt.id
-                      ? "bg-violet-400 text-white shadow-md"
-                      : "bg-purple-50 text-black"
-                  }`}
-                >
-                  {opt.name}
-                </button>
+                <div key={opt.id} className="relative">
+                  <button
+                    onClick={() => setParentInterest(opt.id)}
+                    className={`w-full p-3 rounded-lg text-left text-sm ${
+                      parentInterest === opt.id
+                        ? 'bg-violet-400 text-white shadow-md'
+                        : 'bg-purple-50 text-black'
+                    }`}
+                  >
+                    {opt.name}
+                  </button>
+                  {editMode && (
+                    <Edit2
+                      className="absolute top-1 right-1 cursor-pointer text-violet-400"
+                      size={16}
+                      onClick={() => updatePreference('parents_interest', opt.id)}
+                    />
+                  )}
+                </div>
               ))}
             </div>
+            {editMode && (
+              <div className="flex gap-2 items-center">
+                <input
+                  type="text"
+                  value={newParentInterest}
+                  onChange={(e) => setNewParentInterest(e.target.value)}
+                  placeholder="Add new interest"
+                  className="flex-1 rounded-lg p-2 bg-purple-50 text-black border"
+                />
+                <ArrowRight
+                  className="text-violet-400"
+                  size={18}
+                  onClick={() => {
+                    if (!newParentInterest.trim()) return;
+                    addPreference('parents_interest', newParentInterest.trim());
+                    setNewParentInterest('');
+                  }}
+                />
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Child's Interest Selection */}
+        {/* Child Interests */}
         <div>
-          <label className="block text-black font-medium">
+          <label className="block text-black mb-2 font-medium">
             {childNickname ? `${childNickname}'s Interest` : "Child's Interest"}
           </label>
-          <div className="bg-white rounded-lg p-1 shadow-md">
+          <div className="bg-white rounded-lg p-2 shadow-md space-y-2">
+            <div className="flex justify-end px-6">
+              <button
+                onClick={() => setEditMode(!editMode)}
+                className="text-sm text-indigo-800 underline"
+              >
+                {editMode ? 'Done' : 'Edit/Add'}
+              </button>
+            </div>
             <div className="grid grid-cols-2 gap-2">
               {childInterests.map((opt) => (
-                <button
-                  key={opt.id}
-                  onClick={() => setChildInterest(opt.id)}
-                  className={`p-3 rounded-lg text-left text-sm ${
-                    childInterest === opt.id
-                      ? "bg-violet-400 text-white shadow-md"
-                      : "bg-purple-50 text-black"
-                  }`}
-                >
-                  {opt.name}
-                </button>
+                <div key={opt.id} className="relative">
+                  <button
+                    onClick={() => setChildInterest(opt.id)}
+                    className={`w-full p-3 rounded-lg text-left text-sm ${
+                      childInterest === opt.id
+                        ? 'bg-violet-400 text-white shadow-md'
+                        : 'bg-purple-50 text-black'
+                    }`}
+                  >
+                    {opt.name}
+                  </button>
+                  {editMode && (
+                    <Edit2
+                      className="absolute top-1 right-1 cursor-pointer text-indigo-600"
+                      size={16}
+                      onClick={() => updatePreference('children_interest', opt.id)}
+                    />
+                  )}
+                </div>
               ))}
             </div>
+            {editMode && (
+              <div className="flex gap-2 items-center">
+                <input
+                  type="text"
+                  value={newChildInterest}
+                  onChange={(e) => setNewChildInterest(e.target.value)}
+                  placeholder="Add new interest"
+                  className="flex-1 rounded-lg p-2 bg-purple-50 text-black border"
+                />
+                <ArrowRight
+                  className="text-violet-400"
+                  size={18}
+                  onClick={() => {
+                    if (!newChildInterest.trim()) return;
+                    addPreference('children_interest', newChildInterest.trim());
+                    setNewChildInterest('');
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-black mb-2 font-medium">
+            Story's Theme
+          </label>
+          <div className="bg-white rounded-lg p-2 shadow-md space-y-2">
+            <div className="flex justify-end px-6">
+              <button
+                onClick={() => setEditMode(!editMode)}
+                className="text-sm text-indigo-800 underline"
+              >
+                {editMode ? 'Done' : 'Edit/Add'}
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {themes.map((opt) => (
+                <div key={opt.id} className="relative">
+                  <button
+                    onClick={() => setTheme(opt.id)}
+                    className={`w-full p-3 rounded-lg text-left text-sm ${
+                      theme === opt.id
+                        ? 'bg-violet-400 text-white shadow-md'
+                        : 'bg-purple-50 text-black'
+                    }`}
+                  >
+                    {opt.name}
+                  </button>
+                  {editMode && (
+                    <Edit2
+                      className="absolute top-1 right-1 cursor-pointer text-indigo-600"
+                      size={16}
+                      onClick={() => updatePreference('themes', opt.id)}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+            {editMode && (
+              <div className="flex gap-2 items-center">
+                <input
+                  type="text"
+                  value={newTheme}
+                  onChange={(e) => setNewTheme(e.target.value)}
+                  placeholder="Add new Theme"
+                  className="flex-1 rounded-lg p-2 bg-purple-50 text-black border"
+                />
+                <ArrowRight
+                  className="text-violet-400"
+                  size={18}
+                  onClick={() => {
+                    if (!newTheme.trim()) return;
+                    addPreference('themes', newTheme.trim());
+                    setNewTheme('');
+                  }}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -226,11 +408,11 @@ export default function CreateStoryScreen() {
             const storyPrompt =
               `Create a heartwarming story centered around ${childNickname} and ${parentNickname}, ` +
               `${parentNickname} explores the world of ${parentInterestName}, ` +
-              `while ${childNickname} embarks on an adventure as a ${childInterestName}.`;
+              `while ${childNickname} embarks on an adventure as a ${childInterestName}. Make the story ` +
+              `to be in the theme of ${themeName}.`;
             setPrompt(storyPrompt);
             clearStorySession();
             navigate("/story");
-
           }}
           className={`w-full p-4 rounded-lg font-medium flex items-center justify-center gap-2 shadow-lg ${
             canGenerate

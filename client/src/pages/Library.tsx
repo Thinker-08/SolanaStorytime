@@ -129,7 +129,7 @@ export default function LibraryScreen() {
       : stories.filter((s) => s.category === activeCategory);
 
   return (
-    <div className="flex flex-col h-full bg-violet-100 text-white">
+    <div className="flex flex-col h-screen bg-violet-100 text-white">
       {/* Header */}
       <header className="p-4 flex justify-between items-center bg-white">
         <button className="text-indigo-300" onClick={() => navigate("/home")}

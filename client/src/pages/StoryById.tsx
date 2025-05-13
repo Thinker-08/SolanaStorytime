@@ -70,7 +70,10 @@ export default function Story() {
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
         setDropdownOpen(false);
       }
     };
@@ -98,14 +101,36 @@ export default function Story() {
   const [story, setStory] = useState<StoryData | null>(null);
   const [loading, setLoading] = useState(true);
   const [comment, setComment] = useState("");
-  const [selectedFeedbackCode, setSelectedFeedbackCode] = useState<number | null>(null);
+  const [selectedFeedbackCode, setSelectedFeedbackCode] = useState<
+    number | null
+  >(null);
 
   const feedbackOptions = [
-    { code: 1, src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/lywu9ibb3gm2alhvcvzh.png", alt: "Loved it!!" },
-    { code: 2, src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/fkmkhqoa6xyi80a7cwpk.png", alt: "Felt connected" },
-    { code: 3, src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/dsxdjj7qoekw5djcpsp1.png", alt: "It was okay" },
-    { code: 4, src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/chrwsxmqm7k0xk2jhorl.png", alt: "Didn't click" },
-    { code: 5, src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/tj0ukdvtp01rzyvadq0c.png", alt: "Needs Improvement" },
+    {
+      code: 1,
+      src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/lywu9ibb3gm2alhvcvzh.png",
+      alt: "Loved it!!",
+    },
+    {
+      code: 2,
+      src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/fkmkhqoa6xyi80a7cwpk.png",
+      alt: "Felt connected",
+    },
+    {
+      code: 3,
+      src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/dsxdjj7qoekw5djcpsp1.png",
+      alt: "It was okay",
+    },
+    {
+      code: 4,
+      src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/chrwsxmqm7k0xk2jhorl.png",
+      alt: "Didn't click",
+    },
+    {
+      code: 5,
+      src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/tj0ukdvtp01rzyvadq0c.png",
+      alt: "Needs Improvement",
+    },
   ];
 
   useEffect(() => {
@@ -123,7 +148,11 @@ export default function Story() {
         const data = await res.json();
         setStory(data);
       } catch (err) {
-        toast({ title: "Error", description: "Unable to load the story.", variant: "destructive" });
+        toast({
+          title: "Error",
+          description: "Unable to load the story.",
+          variant: "destructive",
+        });
       } finally {
         setLoading(false);
       }
@@ -137,24 +166,40 @@ export default function Story() {
       await apiRequest(
         "POST",
         "/api/submit-feedback",
-        { storyPrompt: story?.description, feedbackCode: selectedFeedbackCode, comment },
+        {
+          storyPrompt: story?.description,
+          feedbackCode: selectedFeedbackCode,
+          comment,
+        },
         { Authorization: `Bearer ${token}` }
       );
-      toast({ title: "Thanks!", description: "Your feedback has been submitted." });
+      toast({
+        title: "Thanks!",
+        description: "Your feedback has been submitted.",
+      });
       setSelectedFeedbackCode(null);
       setComment("");
     } catch {
-      toast({ title: "Error", description: "Could not submit feedback.", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Could not submit feedback.",
+        variant: "destructive",
+      });
     }
   };
 
   return (
     <div className="flex flex-col h-full bg-violet-100 text-white">
       <header className="p-4 flex items-center justify-between bg-white">
-        <button onClick={() => window.history.back()} className="text-indigo-300">
+        <button
+          onClick={() => window.history.back()}
+          className="text-indigo-300"
+        >
           <ArrowLeft className="h-6 w-6 text-violet-400" />
         </button>
-        <h1 className="text-xl font-extrabold flex-1 text-center text-black">Your Story</h1>
+        <h1 className="text-xl font-extrabold flex-1 text-center text-black">
+          Your Story
+        </h1>
         <div ref={dropdownRef} className="relative">
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -180,10 +225,14 @@ export default function Story() {
           <div className="text-center text-indigo-300">Generating story…</div>
         ) : story ? (
           <>
-            <h2 className="text-3xl font-bold text-center mb-6 text-black">{story.title}</h2>
+            <h2 className="text-3xl font-bold text-center mb-6 text-black">
+              {story.title}
+            </h2>
             <div className="bg-white p-4 rounded-2xl shadow-md text-lg whitespace-pre-wrap text-black">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{story.description}</ReactMarkdown>
-              <TextToSpeech text={story.description} isVisible={true}/>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {story.description}
+              </ReactMarkdown>
+              <TextToSpeech text={story.description} isVisible={true} />
             </div>
           </>
         ) : (
@@ -200,11 +249,19 @@ export default function Story() {
               type="button"
               onClick={() => setSelectedFeedbackCode(code)}
               className={`flex flex-col items-center gap-2 p-4 rounded-lg transition border border-white shadow-inner shadow-md-2 ${
-                selectedFeedbackCode === code ? "bg-violet-400" : "hover:bg-purple-200"
+                selectedFeedbackCode === code
+                  ? "bg-violet-400"
+                  : "hover:bg-purple-200"
               }`}
             >
-              <img src={src} alt={alt} className="object-contain w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16" />
-              <p className="text-sm md:text-base text-center text-black font-medium">{alt}</p>
+              <img
+                src={src}
+                alt={alt}
+                className="object-contain w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16"
+              />
+              <p className="text-sm md:text-base text-center text-black font-medium">
+                {alt}
+              </p>
             </button>
           ))}
         </div>
@@ -226,6 +283,26 @@ export default function Story() {
           Submit Feedback
         </button>
       </form>
+      <div className="px-4 pb-4">
+  <div className="flex gap-2">
+    {["Image", "Video", "Coloring Paper"].map((label) => (
+      <button
+        key={label}
+        onClick={() =>
+          toast({
+            title: `${label} feature`,
+            description: "This feature is currently in works!",
+            variant: "default",
+          })
+        }
+        className="flex-1 py-3 bg-violet-400 hover:bg-violet-500 text-white font-bold rounded-lg shadow"
+      >
+        {label}
+      </button>
+    ))}
+  </div>
+</div>
+
     </div>
   );
 }

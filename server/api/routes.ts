@@ -693,6 +693,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...userPreferences,
         [preferenceType]: [...userPreferences[preferenceType], { id: uuid(), name }],
       };
+      console.log(updatedPreferences);
       await storage.updateUserPreferences(userId, updatedPreferences);
       return res.json({ message: "User preference added successfully" });
     } catch (err) {

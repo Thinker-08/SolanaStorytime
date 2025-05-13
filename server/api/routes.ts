@@ -678,6 +678,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/add-user-preference", authMiddleware, async (req: AuthRequest, res: Response) => {
+    try {
+      const userId = req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const { type: preferenceType, name } = req.body;
+      const userPreferences = await storage.getUserPreferences(userId);
+      const updatedPreferences = {
+        ...userPreferences,
+        [preferenceType]: [...userPreferences[preferenceType], { id: uuid(), name }],
+      };
+      await storage.updateUserPreferences(userId, updatedPreferences);
+      return res.json({ message: "User preference added successfully" });
+    } catch (err) {
+      console.log(err);
+      return res.status(500).json({ message: "Failed to add user preference" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

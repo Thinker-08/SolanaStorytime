@@ -93,7 +93,7 @@ export default function Story() {
     const controller = new AbortController();
 
     try {
-      const url = new URL("/api/story-generate", window.location.origin);
+      const url = new URL("https://solana-storytime.vercel.app/api/story-generate", window.location.origin);
       if (storySessionId) {
         url.searchParams.set("sessionId", storySessionId);
       }
@@ -193,7 +193,7 @@ export default function Story() {
     const title = titleMatch ? titleMatch[1].trim() : null;
     const description = rawStory.replace(/##\s*.+?\n\n/, "").trim();
 
-    fetch("/api/add-story-to-library", {
+    fetch("https://solana-storytime.vercel.app/api/add-story-to-library", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

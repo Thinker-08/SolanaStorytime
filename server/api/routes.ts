@@ -168,7 +168,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ message: "Session ID is required" });
         }
 
-        const messages = await storage.getMessagesBySessionId(sessionId);
+        const messages = await storage.getMessagesBySessionId(sessionId as string);
 
         // If this is a new session, add the welcome message
         if (messages.length === 0) {
@@ -176,13 +176,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             role: "assistant",
             content:
               "Hello! I'm SolanaStories, a storytelling bot for children ages 5-10. I can create fun adventures that teach Solana blockchain concepts through magical tales! What kind of story would you like for your child today?",
-            sessionId,
+            sessionId: sessionId as string,
             userId,
           });
         }
 
         // Get fresh messages
-        const updatedMessages = await storage.getMessagesBySessionId(sessionId);
+        const updatedMessages = await storage.getMessagesBySessionId(sessionId as string);
 
         // Format messages for the frontend
         const formattedMessages = updatedMessages.map((msg) => ({
@@ -584,48 +584,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
           role: "user" | "assistant" | "system";
           content: string;
         }[] = [];
-  
-        // Set headers for streaming
-        res.setHeader("Content-Type", "text/event-stream");
-        res.setHeader("Cache-Control", "no-cache");
-        res.setHeader("Connection", "keep-alive");
-  
-        // Handle sessionId logic
+
         if (typeof sessionId === "string" && sessionId.length > 0) {
-          // Use existing session
           chatHistory = await storage.getMessagesBySessionId(sessionId);
         } else {
-          // Generate new sessionId and store it
           sessionId = uuid();
-          // Return the new sessionId to the client
-          res.write(`event: sessionId\ndata: ${sessionId}\n\n`);
         }
 
         conversationHistory = chatHistory.map((msg) => ({
           role: msg.role as "user" | "assistant" | "system",
           content: msg.content,
         }));
-
-        let fullResponse = "";
   
-        for await (const chunk of generateStoryStream(message, conversationHistory)) {
-          fullResponse += chunk;
-          res.write(`data: ${chunk}\n\n`);
-        }
+        const storyResponse = await generateStory(message, conversationHistory);
 
         await storage.saveMessage({
           role: "assistant",
-          content: fullResponse,
+          content: storyResponse,
           sessionId,
           userId,
         });
 
-        res.write("data: [DONE]\n\n");
-        res.end();
+        return res.status(200).json({
+          message: storyResponse,
+        });
       } catch (error) {
         console.error("Error generating story:", error);
-        res.write("data: [ERROR]\n\n");
-        res.end();
+        return res.status(500).json({ message: "Failed to generate story" })
       }
     },
   );

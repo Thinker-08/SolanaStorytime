@@ -152,15 +152,24 @@ const HomePage = () => {
       {rank} Tier
     </span>
 
-    {/* only show on hover */}
-    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max max-w-xs bg-black text-white text-xs rounded-md px-3 py-2 shadow-lg hidden group-hover:block z-50">
-      <p className="whitespace-no-wrap">
-        Achievement unlocked!
-        {rank === "Gold" && " You’ve created 10 or more stories."}
-        {rank === "Silver" && " You’ve created 5 or more stories."}
-        {rank === "Bronze" && " Keep going! 5 stories unlock Silver."}
-      </p>
-    </div>
+    <div
+  className="
+    absolute top-full left-1/2 -translate-x-1/2 mt-2
+    bg-black text-white text-xs rounded-md px-3 py-2 shadow-lg
+    hidden group-hover:block z-50
+    max-w-[12rem]
+    whitespace-normal
+    break-words
+  "
+>
+  <p>
+    Achievement unlocked!
+    {rank === "Gold" && " You’ve created 10 or more stories."}
+    {rank === "Silver" && " You’ve created 5 or more stories."}
+    {rank === "Bronze" && " Keep going! 5 stories unlock Silver."}
+  </p>
+</div>
+
   </div>
 )}
 

@@ -13,22 +13,24 @@ import TextToSpeech from "../components/TextToSpeech";
 // Helper to collapse extra spaces and inject proper markdown breaks
 function formatStory(text: string): string {
   return text
+    // collapse multiple newlines into one
+    .replace(/\n{2,}/g, "\n")
     // collapse multiple spaces
     .replace(/ {2,}/g, " ")
-    // convert any **some heading** into a level-2 markdown heading
-    .replace(/\*\*(.+?)\*\*/g, "\n\n## $1\n\n")
-    // special-case bolded Title: into heading (if you still need it)
-    .replace(/\*\*\s*Title\s*:\s*(.+?)\s*\*\*/g, "\n\n## $1\n\n")
+    // convert lines that are entirely bolded (e.g., **Heading**) into level-2 markdown headings
+    .replace(/^\*\*(.+?)\*\*\s*$/gm, "## $1")
+    // special-case bolded Title: into heading
+    .replace(/^\*\*\s*Title\s*:\s*(.+?)\s*\*\*\s*$/gmi, "## $1")
     // horizontal rules
-    .replace(/---/g, "\n\n---\n\n")
-    // other custom rules
+    .replace(/---/g, "---")
+    // other custom rules for summary and parents section
     .replace(
       /###\s*Summary\s*for\s*Kids\s*:/gi,
-      "\n\n### Summary for Kids:\n\n"
+      "### Summary for Kids:"
     )
     .replace(
       /\*\*[\s\S]+For\s*Parents[\s\S]*$/m,
-      (match) => `\n\n${match.trim()}\n\n`
+      match => `\n${match.trim()}\n`
     )
     .trim();
 }
@@ -90,10 +92,12 @@ export default function Story() {
   const sendMessage = async (message: string) => {
     setRawStory("");
     setIsStreaming(true);
-    const controller = new AbortController();
 
     try {
-      const url = new URL("https://solana-storytime.vercel.app/api/story-generate", window.location.origin);
+      const url = new URL(
+        "https://solana-storytime.vercel.app/api/story-generate",
+        window.location.origin
+      );
       if (storySessionId) {
         url.searchParams.set("sessionId", storySessionId);
       }
@@ -105,71 +109,37 @@ export default function Story() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ message }),
-        signal: controller.signal,
       });
 
-      if (!res.ok || !res.body) {
+      if (!res.ok) {
         throw new Error("Network response was not OK");
       }
 
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-      let seenFirstChunk = false;
+      const data = await res.json();
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      // Store new sessionId if provided
+      if (data.sessionId) {
+        setStorySessionId(data.sessionId);
+      }
 
-        buffer += decoder.decode(value, { stream: true });
-        const parts = buffer.split("\n\n");
-        buffer = parts.pop()!;
-
-        for (const part of parts) {
-          // Handle custom sessionId event
-          if (part.startsWith("event: sessionId")) {
-            const match = part.match(/^data:\s*(.+)$/m);
-            if (match) {
-              setStorySessionId(match[1].trim());
-            }
-            continue;
-          }
-
-          // Handle data chunks
-          const dataMatch = /^data:(.*)$/s.exec(part);
-          if (!dataMatch) continue;
-          const data = dataMatch[1];
-          if (data === "[DONE]") {
-            setIsStreaming(false);
-            return;
-          }
-          if (data === "[ERROR]") {
-            throw new Error("Server error during stream");
-          }
-
-          // **NEW: once the first real chunk arrives, stop showing Lottie**
-          if (!seenFirstChunk) {
-            seenFirstChunk = true;
-            setIsStreaming(false);
-          }
-
-          setRawStory((prev) => prev + data);
-        }
+      // Set the story text
+      if (data.message) {
+        setRawStory(data.message);
+      } else {
+        throw new Error("No story message in response");
       }
     } catch (err: any) {
-      if (err.name !== "AbortError") {
-        toast({
-          title: "Error",
-          description: err.message || "Failed to stream.",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Error",
+        description: err.message || "Failed to fetch story.",
+        variant: "destructive",
+      });
     } finally {
-      controller.abort();
+      setIsStreaming(false);
     }
   };
 
-  // On mount / prompt change: generate the story
+  // On mount / prompt change: get the story
   useEffect(() => {
     if (!prompt) {
       navigate("/create");
@@ -178,7 +148,7 @@ export default function Story() {
     sendMessage(prompt);
   }, [prompt]);
 
-  // Feedback submission uses same sendMessage
+  // Feedback “remix” uses same static request
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const feedbackText = comment || `Feedback code: ${selectedFeedbackCode}`;
@@ -243,7 +213,6 @@ export default function Story() {
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
-                // Override how <strong> is rendered:
                 strong: ({ node, ...props }) => (
                   <strong className="font-bold text-xl text-black" {...props} />
                 ),
@@ -252,6 +221,7 @@ export default function Story() {
               {rawStory ? formatStory(rawStory) : prompt}
             </ReactMarkdown>
             <TextToSpeech text={rawStory} isVisible={!!rawStory} />
+
             {/* Feedback Form */}
             <form
               onSubmit={handleSubmit}
@@ -288,6 +258,7 @@ export default function Story() {
                 placeholder="What did you think of this story?"
                 className="w-full h-24 p-3 rounded-lg bg-white border border-indigo-700/30 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none"
               />
+
               <button
                 type="submit"
                 disabled={selectedFeedbackCode === null && !comment.trim()}

@@ -176,12 +176,6 @@ const HomePage = () => {
 
         </div>
         <div className="flex items-center gap-3">
-          <button className="p-2 rounded-full bg-white shadow-md">
-            <History className="h-5 w-5 text-violet-800" />
-          </button>
-          <button className="p-2 rounded-full bg-white shadow-md">
-            <Sun className="h-5 w-5 text-yellow-400" />
-          </button>
           <div ref={dropdownRef} className="relative">
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}

@@ -607,6 +607,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         return res.status(200).json({
           message: storyResponse,
+          sessionId: sessionId as string,
         });
       } catch (error) {
         console.error("Error generating story:", error);

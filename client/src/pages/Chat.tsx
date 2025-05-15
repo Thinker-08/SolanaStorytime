@@ -5,7 +5,6 @@ import { v4 as uuidv4 } from "uuid";
 import { useToast } from "../hooks/use-toast";
 import ChatHistory from "../components/ChatHistory";
 import MessageInput from "../components/MessageInput";
-import SamplePrompts from "../components/SamplePrompts";
 import TaskPane from "../components/TaskPane";
 import { jwtDecode } from "jwt-decode";
 import { useSession } from "../context/SessionContext";

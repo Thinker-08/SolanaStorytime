@@ -242,7 +242,7 @@ const HomePage = () => {
 
           {/* Story Library */}
           <button
-            onClick={() => navigate("/library")}
+            onClick={() => navigate("/library?type=all")}
             className="p-6 rounded-xl bg-white border border-purple-500/30 flex items-center gap-4 hover:shadow-lg transition-all shadow-lg"
           >
             <div className="p-3 bg-violet-500/30 rounded-lg shadow-inner">
@@ -258,17 +258,17 @@ const HomePage = () => {
 
       {/* Bottom Navigation */}
       <nav className="grid grid-cols-3 bg-white">
-        <button className="p-4 flex flex-col items-center justify-center text-violet-400">
+        <button className="p-4 flex flex-col items-center justify-center text-violet-400" onClick={() => navigate("/home")}>
           <Home size={20} className="text-violet-800" />
           <span className="text-xs mt-1 text-violet-800">Home</span>
         </button>
-        <button className="p-4 flex flex-col items-center justify-center text-indigo-300">
+        <button className="p-4 flex flex-col items-center justify-center text-indigo-300" onClick={() => navigate(`/library?type=${encodeURIComponent('Saved Stories')}`)}>
           <Star size={20} className="text-violet-800" />
-          <span className="text-xs mt-1 text-violet-800">Favorites</span>
+          <span className="text-xs mt-1 text-violet-800">Saved Stories</span>
         </button>
-        <button className="p-4 flex flex-col items-center justify-center text-indigo-300">
+        <button className="p-4 flex flex-col items-center justify-center text-indigo-300" onClick={() => navigate("/library")}>
           <Book size={20} className="text-violet-800" />
-          <span className="text-xs mt-1 text-violet-800">History</span>
+          <span className="text-xs mt-1 text-violet-800">Library</span>
         </button>
       </nav>
     </div>

@@ -1,6 +1,6 @@
 // src/pages/LibraryScreen.tsx
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { ArrowRight, Search, Book } from "lucide-react";
+import { ArrowRight, Book } from "lucide-react";
 import { apiRequest } from "../lib/queryClient";
 import { useAuth } from "../context/AuthContext";
 import { useLocation } from "wouter";
@@ -76,7 +76,13 @@ export default function LibraryScreen() {
 
   useEffect(() => {
     validateToken();
+    setActiveCategory(readTypeParam());
   }, []);
+
+  const readTypeParam = () => {
+    console.log("window.location.search", window.location.search)
+    return new URLSearchParams(window.location.search).get("type") || "all";
+  }
 
   // close dropdown on outside click
   useEffect(() => {
@@ -165,7 +171,12 @@ export default function LibraryScreen() {
           {storyCategories.map((category) => (
             <button
               key={category}
-              onClick={() => setActiveCategory(category)}
+              onClick={() => {
+                // update URL and state
+                const url = `/library?type=${encodeURIComponent(category)}`;
+                navigate(url, { replace: false });
+                setActiveCategory(category);
+              }}
               className={`px-4 py-2 rounded-full text-sm whitespace-nowrap shadow-md transition-colors duration-200 ${
                 activeCategory === category
                   ? "bg-violet-400 text-white font-bold"

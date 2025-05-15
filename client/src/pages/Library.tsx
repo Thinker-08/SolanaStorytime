@@ -138,9 +138,6 @@ export default function LibraryScreen() {
         </button>
         <h1 className="text-xl font-extrabold text-black">Story Library</h1>
         <div className="flex items-center gap-3">
-          <button className="p-2 rounded-full bg-violet-100 shadow-md">
-            <Search className="h-5 w-5 text-violet-400" />
-          </button>
           <div ref={dropdownRef} className="relative">
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}

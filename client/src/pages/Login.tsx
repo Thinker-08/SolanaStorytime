@@ -127,8 +127,8 @@ export default function AuthForm() {
               </div>
             </div>
           </div>
-          <h1 className="text-3xl font-black mt-4 bg-gradient-to-r from-blue-50 via-violet-500 to-blue-50 bg-clip-text text-transparent font-heading lowercase">
-            soulstory
+          <h1 className="text-3xl font-black mt-4 bg-gradient-to-r from-blue-50 via-violet-500 to-blue-50 bg-clip-text text-transparent font-heading">
+            soulstories
           </h1>
           <p className="text-gray-600 mt-2">
             {isLogin

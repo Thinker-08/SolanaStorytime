@@ -129,13 +129,13 @@ const HomePage = () => {
         <div className="flex items-center gap-2">
           <BookOpen className="h-6 w-6 text-violet-400" />
           <h1 className="text-xl font-bold bg-gradient-to-r from-cyan-400 via-purple-500 to-blue-500 bg-clip-text text-transparent">
-            SolanaStories
+            soulstories
           </h1>
           {rank && (
   <div className="relative group ml-3">
     <span
       className={`
-        px-3 py-1 text-xs rounded-full font-bold shadow flex items-center gap-1 bg-white
+        px-2 py-1 text-xs rounded-full font-bold shadow flex items-center gap-1 bg-white
         ${rank === "Gold" ? "text-yellow-500" : ""}
         ${rank === "Silver" ? "text-gray-400" : ""}
         ${rank === "Bronze" ? "text-yellow-800" : ""}
@@ -149,7 +149,7 @@ const HomePage = () => {
           ${rank === "Bronze" ? "text-yellow-800" : ""}
         `}
       />
-      {rank} Tier
+      {rank}
     </span>
 
     <div

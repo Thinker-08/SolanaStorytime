@@ -12,27 +12,26 @@ import TextToSpeech from "../components/TextToSpeech";
 
 // Helper to collapse extra spaces and inject proper markdown breaks
 function formatStory(text: string): string {
-  return text
-    // collapse multiple newlines into one
-    .replace(/\n{2,}/g, "\n")
-    // collapse multiple spaces
-    .replace(/ {2,}/g, " ")
-    // convert lines that are entirely bolded (e.g., **Heading**) into level-2 markdown headings
-    .replace(/^\*\*(.+?)\*\*\s*$/gm, "## $1")
-    // special-case bolded Title: into heading
-    .replace(/^\*\*\s*Title\s*:\s*(.+?)\s*\*\*\s*$/gmi, "## $1")
-    // horizontal rules
-    .replace(/---/g, "---")
-    // other custom rules for summary and parents section
-    .replace(
-      /###\s*Summary\s*for\s*Kids\s*:/gi,
-      "### Summary for Kids:"
-    )
-    .replace(
-      /\*\*[\s\S]+For\s*Parents[\s\S]*$/m,
-      match => `\n${match.trim()}\n`
-    )
-    .trim();
+  return (
+    text
+      // collapse multiple newlines into one
+      .replace(/\n{2,}/g, "\n")
+      // collapse multiple spaces
+      .replace(/ {2,}/g, " ")
+      // convert lines that are entirely bolded (e.g., **Heading**) into level-2 markdown headings
+      .replace(/^\*\*(.+?)\*\*\s*$/gm, "## $1")
+      // special-case bolded Title: into heading
+      .replace(/^\*\*\s*Title\s*:\s*(.+?)\s*\*\*\s*$/gim, "## $1")
+      // horizontal rules
+      .replace(/---/g, "---")
+      // other custom rules for summary and parents section
+      .replace(/###\s*Summary\s*for\s*Kids\s*:/gi, "### Summary for Kids:")
+      .replace(
+        /\*\*[\s\S]+For\s*Parents[\s\S]*$/m,
+        (match) => `\n${match.trim()}\n`
+      )
+      .trim()
+  );
 }
 
 export default function Story() {
@@ -172,7 +171,10 @@ export default function Story() {
       body: JSON.stringify({ title, description }),
     })
       .then(() =>
-        toast({ title: "Saved!", description: "Story is now in your library." })
+        toast({
+          title: "Saved!",
+          description: "Story is now in your library.",
+        })
       )
       .catch(() =>
         toast({
@@ -209,60 +211,60 @@ export default function Story() {
             />
           </div>
         ) : (
-          <div className="bg-white p-4 rounded-2xl shadow-md text-black text-lg whitespace-pre-wrap">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              components={{
-                strong: ({ node, ...props }) => (
-                  <strong className="font-bold text-xl text-black" {...props} />
-                ),
-              }}
+          <>
+            <div className="bg-white p-4 rounded-2xl shadow-md text-black text-lg whitespace-pre-wrap">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  strong: ({ node, ...props }) => (
+                    <strong
+                      className="font-bold text-xl text-black"
+                      {...props}
+                    />
+                  ),
+                }}
+              >
+                {rawStory ? formatStory(rawStory) : prompt}
+              </ReactMarkdown>
+              <TextToSpeech text={rawStory} isVisible={!!rawStory} />
+            </div>
+            <form onSubmit={handleSubmit} className="p-4 space-y-4">
+              <h2 className="text-lg font-extrabold text-black">Feedback</h2>
+              <div className="flex flex-wrap gap-4 justify-center mb-4">
+          {feedbackOptions.map(({ code, src, alt }) => (
+            <button
+              key={code}
+              type="button"
+              onClick={() => setSelectedFeedbackCode(code)}
+              className={`flex flex-col items-center gap-2 p-4 rounded-lg transition border border-white shadow-inner shadow-md-2 ${
+                selectedFeedbackCode === code
+                  ? "bg-violet-400"
+                  : "hover:bg-purple-200"
+              }`}
             >
-              {rawStory ? formatStory(rawStory) : prompt}
-            </ReactMarkdown>
-            <TextToSpeech text={rawStory} isVisible={!!rawStory} />
+              <img
+                src={src}
+                alt={alt}
+                className="object-contain w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16"
+              />
+              <p className="text-sm md:text-base text-center text-black font-medium">
+                {alt}
+              </p>
+            </button>
+          ))}
+        </div>
 
-            {/* Feedback Form */}
-            <form
-              onSubmit={handleSubmit}
-              className="p-4 border-t border-indigo-900/50 space-y-4"
-            >
-              <h2 className="text-lg font-bold">Feedback</h2>
-              <div className="overflow-x-auto">
-                <div className="flex gap-4 mb-4 w-max px-2">
-                  {feedbackOptions.map(({ code, src, alt }) => (
-                    <button
-                      key={code}
-                      type="button"
-                      onClick={() => setSelectedFeedbackCode(code)}
-                      className={`flex flex-col items-center gap-2 p-4 rounded-lg transition ${
-                        selectedFeedbackCode === code
-                          ? "bg-violet-400"
-                          : "hover:bg-purple-200"
-                      }`}
-                    >
-                      <img
-                        src={src}
-                        alt={alt}
-                        className="w-12 h-12 object-contain"
-                      />
-                      <p className="text-sm md:text-base text-center">{alt}</p>
-                    </button>
-                  ))}
-                </div>
-              </div>
 
               <textarea
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 placeholder="What did you think of this story?"
-                className="w-full h-24 p-3 rounded-lg bg-white border border-indigo-700/30 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none"
+                className="w-full h-24 p-3 rounded-lg bg-white border border-indigo-700/30 text-black focus:outline-none focus:ring-2 focus:ring-violet-500 shadow-md resize-none placeholder-black"
               />
-
               <button
                 type="submit"
                 disabled={selectedFeedbackCode === null && !comment.trim()}
-                className={`w-full p-3 rounded-lg text-white font-medium flex items-center justify-center gap-2 shadow-lg transition ${
+                className={`w-full p-4 rounded-lg font-medium flex items-center justify-center gap-2 shadow-lg ${
                   selectedFeedbackCode !== null || comment.trim()
                     ? "bg-violet-400 text-white font-extrabold shadow-violet-700/30"
                     : "bg-violet-200 font-extrabold text-white"
@@ -278,7 +280,7 @@ export default function Story() {
             >
               Save to Library
             </button>
-          </div>
+          </>
         )}
       </div>
     </div>

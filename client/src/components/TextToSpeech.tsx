@@ -79,7 +79,7 @@ export default function TextToSpeech({ text, isVisible }: TextToSpeechProps) {
 
       try {
         // Try API
-        const resp = await fetch("/api/text-to-speech-speak", {
+        const resp = await fetch("https://solana-storytime.vercel.app/api/text-to-speech-speak", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text }),

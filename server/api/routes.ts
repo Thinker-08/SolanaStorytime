@@ -18,7 +18,7 @@ import { v4 as uuid } from "uuid";
 dotenv.config();
 const ELEVENLABS_API_KEY =
   process.env.ELEVENLABS_API_KEY ||
-  "sk_9948ca82b777baf06144ad33ce6bd7c550433eea212c98b2";
+  "sk_13deb378e3f928ffb72b23bbe1c6a502fa735659c4e997e3";
 const client = new ElevenLabsClient({
   apiKey: ELEVENLABS_API_KEY,
 });

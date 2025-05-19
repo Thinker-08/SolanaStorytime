@@ -8,7 +8,8 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useLocation } from "wouter";
 import { jwtDecode } from "jwt-decode";
-import TextToSpeech from "../components/TextToSpeech";
+import TextToSpeech2 from "../components/TextToSpeech2";
+import { Star } from "lucide-react";
 
 type TokenPayload = {
   id: number;
@@ -228,11 +229,28 @@ export default function Story() {
             <h2 className="text-3xl font-bold text-center mb-6 text-black">
               {story.title}
             </h2>
+            <div className="flex gap-2">
+              {["Image", "Video", "Coloring Paper", "Mint to NFT"].map((label) => (
+                <button
+                  key={label}
+                  onClick={() =>
+                    toast({
+                      title: `${label} feature`,
+                      description: "This feature is currently in works!",
+                      variant: "default",
+                    })
+                  }
+                  className="flex-1 py-3 bg-violet-400 hover:bg-violet-500 text-white font-bold rounded-lg shadow"
+                >
+                  {label}
+                </button>
+              ))}
+              <TextToSpeech2 text={story.description} isVisible={true}/>
+            </div>
             <div className="bg-white p-4 rounded-2xl shadow-md text-lg whitespace-pre-wrap text-black">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {story.description}
               </ReactMarkdown>
-              <TextToSpeech text={story.description} isVisible={true} />
             </div>
           </>
         ) : (
@@ -243,25 +261,20 @@ export default function Story() {
       <form onSubmit={handleSubmit} className="p-4 space-y-4">
         <h2 className="text-lg font-extrabold text-black">Feedback</h2>
         <div className="flex flex-wrap gap-4 justify-center mb-4">
-          {feedbackOptions.map(({ code, src, alt }) => (
+          {[1, 2, 3, 4, 5].map((code) => (
             <button
               key={code}
               type="button"
               onClick={() => setSelectedFeedbackCode(code)}
-              className={`flex flex-col items-center gap-2 p-4 rounded-lg transition border border-white shadow-inner shadow-md-2 ${
-                selectedFeedbackCode === code
-                  ? "bg-violet-400"
-                  : "hover:bg-purple-200"
-              }`}
+              className="p-2 transition"
             >
-              <img
-                src={src}
-                alt={alt}
-                className="object-contain w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16"
+              <Star
+                className={`w-16 h-16 md:w-10 md:h-10 ${
+                  selectedFeedbackCode !== null && code <= selectedFeedbackCode
+                    ? "fill-yellow-400 stroke-yellow-500"
+                    : "stroke-gray-400"
+                }`}
               />
-              <p className="text-sm md:text-base text-center text-black font-medium">
-                {alt}
-              </p>
             </button>
           ))}
         </div>
@@ -283,26 +296,7 @@ export default function Story() {
           Submit Feedback
         </button>
       </form>
-      <div className="px-4 pb-4">
-  <div className="flex gap-2">
-    {["Image", "Video", "Coloring Paper"].map((label) => (
-      <button
-        key={label}
-        onClick={() =>
-          toast({
-            title: `${label} feature`,
-            description: "This feature is currently in works!",
-            variant: "default",
-          })
-        }
-        className="flex-1 py-3 bg-violet-400 hover:bg-violet-500 text-white font-bold rounded-lg shadow"
-      >
-        {label}
-      </button>
-    ))}
-  </div>
-</div>
-
+      <div className="px-4 pb-4"></div>
     </div>
   );
 }

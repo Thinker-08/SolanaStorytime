@@ -9,13 +9,14 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Lottie from "lottie-react";
 import TextToSpeech from "../components/TextToSpeech";
+import { Star } from "lucide-react";
 
 // Helper to collapse extra spaces and inject proper markdown breaks
 function formatStory(text: string): string {
   return (
     text
       // collapse multiple newlines into one
-      .replace(/\n{2,}/g, "\n")
+      .replace(/\n{2,}/g, "\n\n")
       // collapse multiple spaces
       .replace(/ {2,}/g, " ")
       // convert lines that are entirely bolded (e.g., **Heading**) into level-2 markdown headings
@@ -48,34 +49,7 @@ export default function Story() {
   const [selectedFeedbackCode, setSelectedFeedbackCode] = useState<
     number | null
   >(null);
-
-  const feedbackOptions = [
-    {
-      code: 1,
-      src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/lywu9ibb3gm2alhvcvzh.png",
-      alt: "Loved it!!",
-    },
-    {
-      code: 2,
-      src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/fkmkhqoa6xyi80a7cwpk.png",
-      alt: "Felt connected",
-    },
-    {
-      code: 3,
-      src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/dsxdjj7qoekw5djcpsp1.png",
-      alt: "It was okay",
-    },
-    {
-      code: 4,
-      src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/chrwsxmqm7k0xk2jhorl.png",
-      alt: "Didn't click",
-    },
-    {
-      code: 5,
-      src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/tj0ukdvtp01rzyvadq0c.png",
-      alt: "Needs Improvement",
-    },
-  ];
+  const [title, setTitle] = useState<string>("");
 
   // Load Lottie animation
   useEffect(() => {
@@ -123,7 +97,14 @@ export default function Story() {
 
       // Set the story text
       if (data.message) {
-        setRawStory(data.message);
+        const titleMatch = data.message.match(/\*\*Title:\s*(.+?)\*\*/i);
+        const title = titleMatch ? titleMatch[1].trim() : null;
+        setTitle(title);
+        if (title) {
+          setRawStory(data.message.replace(/\*\*Title:\s*.+?\*\*\n\n/, ""));
+        } else {
+          setRawStory(data.message);
+        }
       } else {
         throw new Error("No story message in response");
       }
@@ -158,8 +139,6 @@ export default function Story() {
 
   // Save to library
   const handleSaveToLibrary = () => {
-    const titleMatch = rawStory.match(/##\s*(.+?)\n\n/);
-    const title = titleMatch ? titleMatch[1].trim() : null;
     const description = rawStory.replace(/##\s*.+?\n\n/, "").trim();
 
     fetch("https://solana-storytime.vercel.app/api/add-story-to-library", {
@@ -212,6 +191,11 @@ export default function Story() {
           </div>
         ) : (
           <>
+            {title && (
+              <h2 className="text-3xl font-bold text-center mb-6 text-black">
+                {title}
+              </h2>
+            )}
             <div className="bg-white p-4 rounded-2xl shadow-md text-black text-lg whitespace-pre-wrap">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
@@ -231,29 +215,26 @@ export default function Story() {
             <form onSubmit={handleSubmit} className="p-4 space-y-4">
               <h2 className="text-lg font-extrabold text-black">Feedback</h2>
               <div className="flex flex-wrap gap-4 justify-center mb-4">
-          {feedbackOptions.map(({ code, src, alt }) => (
-            <button
-              key={code}
-              type="button"
-              onClick={() => setSelectedFeedbackCode(code)}
-              className={`flex flex-col items-center gap-2 p-4 rounded-lg transition border border-white shadow-inner shadow-md-2 ${
-                selectedFeedbackCode === code
-                  ? "bg-violet-400"
-                  : "hover:bg-purple-200"
-              }`}
-            >
-              <img
-                src={src}
-                alt={alt}
-                className="object-contain w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16"
-              />
-              <p className="text-sm md:text-base text-center text-black font-medium">
-                {alt}
-              </p>
-            </button>
-          ))}
-        </div>
-
+                <div className="flex items-center justify-center gap-2 mb-4">
+                  {[1, 2, 3, 4, 5].map((code) => (
+                    <button
+                      key={code}
+                      type="button"
+                      onClick={() => setSelectedFeedbackCode(code)}
+                      className="p-2 transition"
+                    >
+                      <Star
+                        className={`w-32 h-32 md:w-32 md:h-32 ${
+                          selectedFeedbackCode !== null &&
+                          code <= selectedFeedbackCode
+                            ? "fill-yellow-400 stroke-yellow-500"
+                            : "stroke-gray-400"
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               <textarea
                 value={comment}

@@ -112,6 +112,8 @@ export default function CreateStoryScreen() {
       setParentInterests(prefs.parents_interest || []);
       setChildInterests(prefs.children_interest || []);
       setThemes(prefs.themes || []);
+      setParentNickname(prefs.parents_name?.[0]?.name || "");
+      setChildNickname(prefs.children_name?.[0]?.name || "");
     } catch (err) {
       console.error("Error loading preferences:", err);
     }
@@ -152,6 +154,33 @@ export default function CreateStoryScreen() {
       console.error(`Failed to update ${type}:`, err);
     }
   };
+
+  const saveNames = async() => {
+    try {
+      await fetch("https://solana-storytime.vercel.app/api/update-user-preferences", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ type: "parents_name", name: parentNickname }),
+      })
+    } catch (err) {
+      console.error(`Failed to save parent nickname:`, err);
+    }
+    try {
+      await fetch("https://solana-storytime.vercel.app/api/update-user-preferences", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ type: "children_name", name: childNickname }),
+      })
+    } catch (err) {
+      console.error(`Failed to save child nickname:`, err);
+    }
+  }
 
   const canGenerate = Boolean(
     childNickname && parentNickname && parentInterest && childInterest && theme
@@ -412,6 +441,7 @@ export default function CreateStoryScreen() {
               `to be in the theme of ${themeName}. Always add emojis and use highlight/bold to make the story more readable.`;
             setPrompt(storyPrompt);
             clearStorySession();
+            saveNames();
             navigate("/story");
           }}
           className={`w-full p-4 rounded-lg font-medium flex items-center justify-center gap-2 shadow-lg ${

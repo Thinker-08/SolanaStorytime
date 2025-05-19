@@ -409,7 +409,7 @@ export default function CreateStoryScreen() {
               `Create a heartwarming story centered around ${childNickname} and ${parentNickname}, ` +
               `${parentNickname} explores the world of ${parentInterestName}, ` +
               `while ${childNickname} embarks on an adventure as a ${childInterestName}. Make the story ` +
-              `to be in the theme of ${themeName}.`;
+              `to be in the theme of ${themeName}. Always add emojis and use highlight/bold to make the story more readable.`;
             setPrompt(storyPrompt);
             clearStorySession();
             navigate("/story");

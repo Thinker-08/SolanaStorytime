@@ -100,7 +100,9 @@ const userSchema = new mongoose.Schema({
           id: 4,
           name: "Adventure"
         },
-      ]
+      ],
+      parents_name: [],
+      children_name: [],
     }
   }
 }, { timestamps: true });

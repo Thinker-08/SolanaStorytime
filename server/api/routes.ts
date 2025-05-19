@@ -656,7 +656,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userPreferences = data.preferences;
       const updatedPreferences = {
         ...userPreferences,
-        [preferenceType]: userPreferences[preferenceType].map((item: any) => item.id === id ? { ...item, name } : item),
+        [preferenceType]: userPreferences[preferenceType]
+          ? userPreferences[preferenceType].map((item: any) => item.id === id ? { ...item, name } : item)
+          : [{ id: uuid(), name }],
       };
       await storage.updateUserPreferences(userId, updatedPreferences);
       return res.json({ message: "User preferences updated successfully" });

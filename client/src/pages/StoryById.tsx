@@ -10,6 +10,7 @@ import { useLocation } from "wouter";
 import { jwtDecode } from "jwt-decode";
 import TextToSpeech2 from "../components/TextToSpeech2";
 import { Star } from "lucide-react";
+import { c } from "node_modules/vite/dist/node/types.d-aGj9QkWt";
 
 type TokenPayload = {
   id: number;
@@ -106,34 +107,6 @@ export default function Story() {
     number | null
   >(null);
 
-  const feedbackOptions = [
-    {
-      code: 1,
-      src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/lywu9ibb3gm2alhvcvzh.png",
-      alt: "Loved it!!",
-    },
-    {
-      code: 2,
-      src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/fkmkhqoa6xyi80a7cwpk.png",
-      alt: "Felt connected",
-    },
-    {
-      code: 3,
-      src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/dsxdjj7qoekw5djcpsp1.png",
-      alt: "It was okay",
-    },
-    {
-      code: 4,
-      src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/chrwsxmqm7k0xk2jhorl.png",
-      alt: "Didn't click",
-    },
-    {
-      code: 5,
-      src: "https://res.cloudinary.com/dnzwzwnlg/image/upload/v1745864399/tj0ukdvtp01rzyvadq0c.png",
-      alt: "Needs Improvement",
-    },
-  ];
-
   useEffect(() => {
     if (!storyId) return;
     (async () => {
@@ -189,6 +162,36 @@ export default function Story() {
     }
   };
 
+  const getImage = (label: string) => {
+    switch (label) {
+      case "Image":
+        return <img
+        src="https://res.cloudinary.com/dnzwzwnlg/image/upload/v1747766991/Image_from_Flaticon_uhqvql.png"
+        alt="Image"
+        className="w-8 h-8" />;
+      case "Video":
+        return <img src="https://res.cloudinary.com/dnzwzwnlg/image/upload/v1747766992/Video_icon_gjea4f.png" alt="Video" className="w-8 h-8" />;
+      case "Coloring Paper":
+        return (
+          <img
+            src="https://res.cloudinary.com/dnzwzwnlg/image/upload/v1747766992/Colored_Pencils_Coloring_Paper_hn3a6f.png"
+            alt="Coloring Paper"
+            className="w-8 h-8"
+          />
+        );
+      case "Mint to NFT":
+        return (
+          <img
+            src="https://res.cloudinary.com/dnzwzwnlg/image/upload/v1747766992/Nft_Icon_k7gpn4.png"
+            alt="Mint to NFT"
+            className="w-8 h-8"
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-violet-100 text-white">
       <header className="p-4 flex items-center justify-between bg-white">
@@ -229,7 +232,7 @@ export default function Story() {
             <h2 className="text-3xl font-bold text-center mb-6 text-black">
               {story.title}
             </h2>
-            <div className="flex gap-2">
+            <div className="grid gap-2 grid-cols-2 sm:grid-cols-2 md:grid-cols-3">
               {["Image", "Video", "Coloring Paper", "Mint to NFT"].map(
                 (label) => (
                   <button
@@ -241,8 +244,9 @@ export default function Story() {
                         variant: "default",
                       })
                     }
-                    className="flex-1 py-3 bg-violet-400 hover:bg-violet-500 text-white font-bold rounded-lg shadow"
+                    className="flex items-center justify-center gap-2 py-3 bg-violet-400 hover:bg-violet-500 text-white font-bold rounded-lg shadow"
                   >
+                    { getImage(label) }
                     {label}
                   </button>
                 )

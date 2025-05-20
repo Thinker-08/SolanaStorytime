@@ -152,7 +152,7 @@ export default function TextToSpeech({ text, isVisible }: TextToSpeechProps) {
               <Button
                 onClick={stopSpeech}
                 variant="outline"
-                className="flex-1 items-center gap-1 h-8 px-3 rounded-full bg-destructive bg-opacity-10"
+                className="flex-1 py-3 bg-violet-400 hover:bg-red-800 text-white font-bold rounded-lg shadow border-none h-11.5 bg-destructive"
               >
                 <VolumeX className="h-4 w-4" />
                 <span className="text-xs text-white">Stop</span>

@@ -8,7 +8,7 @@ import { useStorySession } from "../context/StorySessionContext";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Lottie from "lottie-react";
-import TextToSpeech from "../components/TextToSpeech";
+import TextToSpeech2 from "../components/TextToSpeech2";
 import { Star } from "lucide-react";
 
 // Helper to collapse extra spaces and inject proper markdown breaks
@@ -166,6 +166,36 @@ export default function Story() {
 
   if (!animationData) return <div>Loading animation…</div>;
 
+    const getImage = (label: string) => {
+    switch (label) {
+      case "Image":
+        return <img
+        src="https://res.cloudinary.com/dnzwzwnlg/image/upload/v1747766991/Image_from_Flaticon_uhqvql.png"
+        alt="Image"
+        className="w-8 h-8" />;
+      case "Video":
+        return <img src="https://res.cloudinary.com/dnzwzwnlg/image/upload/v1747766992/Video_icon_gjea4f.png" alt="Video" className="w-8 h-8" />;
+      case "Coloring Paper":
+        return (
+          <img
+            src="https://res.cloudinary.com/dnzwzwnlg/image/upload/v1747766992/Colored_Pencils_Coloring_Paper_hn3a6f.png"
+            alt="Coloring Paper"
+            className="w-8 h-8"
+          />
+        );
+      case "Mint to NFT":
+        return (
+          <img
+            src="https://res.cloudinary.com/dnzwzwnlg/image/upload/v1747766992/Nft_Icon_k7gpn4.png"
+            alt="Mint to NFT"
+            className="w-8 h-8"
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen bg-violet-100 text-white">
       {/* Header */}
@@ -196,6 +226,27 @@ export default function Story() {
                 {title}
               </h2>
             )}
+            <div className="grid gap-2 grid-cols-2 sm:grid-cols-2 md:grid-cols-3">
+              {["Image", "Video", "Coloring Paper", "Mint to NFT"].map(
+                (label) => (
+                  <button
+                    key={label}
+                    onClick={() =>
+                      toast({
+                        title: `${label} feature`,
+                        description: "This feature is currently in works!",
+                        variant: "default",
+                      })
+                    }
+                    className="flex items-center justify-center gap-2 py-3 bg-violet-400 hover:bg-violet-500 text-white font-bold rounded-lg shadow"
+                  >
+                    { getImage(label) }
+                    {label}
+                  </button>
+                )
+              )}
+              <TextToSpeech2 text={rawStory} isVisible={true} />
+            </div>
             <div className="bg-white p-4 rounded-2xl shadow-md text-black text-lg whitespace-pre-wrap">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
@@ -210,7 +261,6 @@ export default function Story() {
               >
                 {rawStory ? formatStory(rawStory) : prompt}
               </ReactMarkdown>
-              <TextToSpeech text={rawStory} isVisible={!!rawStory} />
             </div>
             <form onSubmit={handleSubmit} className="p-4 space-y-4">
               <h2 className="text-lg font-extrabold text-black">Feedback</h2>

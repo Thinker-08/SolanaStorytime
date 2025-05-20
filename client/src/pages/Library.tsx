@@ -19,6 +19,7 @@ type Story = {
   description: string;
   createdAt: string;
   category: string;
+  image_url?: string;
 };
 
 const colorClasses = [
@@ -80,7 +81,6 @@ export default function LibraryScreen() {
   }, []);
 
   const readTypeParam = () => {
-    console.log("window.location.search", window.location.search)
     return new URLSearchParams(window.location.search).get("type") || "all";
   }
 
@@ -207,18 +207,28 @@ export default function LibraryScreen() {
               filteredStories.map((story) => (
                 <div
                   key={story.id}
-                  className="rounded-xl overflow-hidden border border-white shadow-lg bg-indigo-900/20 backdrop-blur-sm"
+                  className="rounded-xl overflow-hidden border border-white shadow-lg bg-indigo-900/20 backdrop-blur-sm cursor-pointer"
                   onClick={() => navigate(`/library/${story.id}`)}
                 >
                   <div
-                    className={`h-32 ${getColorForStory(story)} flex items-center justify-center relative px-2`}
+                    className="h-32 relative flex items-center justify-center px-2"
+                    style={story.image_url
+                      ? {
+                          backgroundImage: `url(${story.image_url})`,
+                          backgroundSize: 'cover',
+                          backgroundPosition: 'top',
+                        }
+                      : undefined
+                    }
                   >
                     <div className="absolute inset-0 bg-gradient-to-t from-white to-transparent opacity-80" />
-                    <div className="text-center relative z-10 max-w-full">
+                    {!story.image_url && (
+                      <div className="relative z-10 text-center max-w-full">
                       <h3 className="text-xl font-extrabold text-black leading-tight break-words">
                         {story.title}
                       </h3>
                     </div>
+                    )}
                   </div>
                   <div className="p-4 bg-white">
                     <p className="text-black text-sm mb-3 line-clamp-3">

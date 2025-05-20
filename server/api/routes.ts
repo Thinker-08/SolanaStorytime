@@ -527,6 +527,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           createdAt: story.createdAt,
           category: story.category,
           image_url: story?.image_url,
+          coloring_paper_url: story?.coloring_paper_url,
         };
         return res.json(formattedStory);
       } catch (error) {

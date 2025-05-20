@@ -223,14 +223,14 @@ export default function Story() {
                       onClick={() => setSelectedFeedbackCode(code)}
                       className="p-2 transition"
                     >
-                      <Star
-                        className={`w-32 h-32 md:w-32 md:h-32 ${
-                          selectedFeedbackCode !== null &&
-                          code <= selectedFeedbackCode
-                            ? "fill-yellow-400 stroke-yellow-500"
-                            : "stroke-gray-400"
-                        }`}
-                      />
+              <Star
+                className={`w-8 h-8 sm:w-8 sm:h-8 md:w-10 md:h-10 lg:w-32 lg:h-32 ${
+                  selectedFeedbackCode !== null && code <= selectedFeedbackCode
+                    ? "fill-yellow-400 stroke-yellow-500"
+                    : "stroke-gray-400"
+                }
+              `}
+              />
                     </button>
                   ))}
                 </div>

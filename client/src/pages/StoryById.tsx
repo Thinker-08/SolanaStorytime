@@ -230,22 +230,24 @@ export default function Story() {
               {story.title}
             </h2>
             <div className="flex gap-2">
-              {["Image", "Video", "Coloring Paper", "Mint to NFT"].map((label) => (
-                <button
-                  key={label}
-                  onClick={() =>
-                    toast({
-                      title: `${label} feature`,
-                      description: "This feature is currently in works!",
-                      variant: "default",
-                    })
-                  }
-                  className="flex-1 py-3 bg-violet-400 hover:bg-violet-500 text-white font-bold rounded-lg shadow"
-                >
-                  {label}
-                </button>
-              ))}
-              <TextToSpeech2 text={story.description} isVisible={true}/>
+              {["Image", "Video", "Coloring Paper", "Mint to NFT"].map(
+                (label) => (
+                  <button
+                    key={label}
+                    onClick={() =>
+                      toast({
+                        title: `${label} feature`,
+                        description: "This feature is currently in works!",
+                        variant: "default",
+                      })
+                    }
+                    className="flex-1 py-3 bg-violet-400 hover:bg-violet-500 text-white font-bold rounded-lg shadow"
+                  >
+                    {label}
+                  </button>
+                )
+              )}
+              <TextToSpeech2 text={story.description} isVisible={true} />
             </div>
             <div className="bg-white p-4 rounded-2xl shadow-md text-lg whitespace-pre-wrap text-black">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -269,11 +271,12 @@ export default function Story() {
               className="p-2 transition"
             >
               <Star
-                className={`w-16 h-16 md:w-10 md:h-10 ${
+                className={`w-8 h-8 sm:w-8 sm:h-8 md:w-10 md:h-10 lg:w-32 lg:h-32 ${
                   selectedFeedbackCode !== null && code <= selectedFeedbackCode
                     ? "fill-yellow-400 stroke-yellow-500"
                     : "stroke-gray-400"
-                }`}
+                }
+              `}
               />
             </button>
           ))}

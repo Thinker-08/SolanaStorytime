@@ -31,7 +31,7 @@ const getInitials = (name: string) =>
 
 export default function Home() {
   const [, navigate] = useLocation();
-  const { sessionId, setSessionId } = useSession();
+  const { sessionId, setSessionId, clearSession } = useSession();
   const [messages, setMessages] = useState<Message[]>([]);
   const { token, setToken } = useAuth();
   const [userName, setUserName] = useState<string>("");
@@ -40,7 +40,6 @@ export default function Home() {
   const { toast } = useToast();
   const taskPaneRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
   const validateToken = () => {
     const authToken = localStorage.getItem("authToken");
     if (!authToken) {
@@ -63,6 +62,10 @@ export default function Home() {
       return false;
     }
   };
+
+  useEffect(() => {
+  clearSession();
+}, []);
 
   useEffect(() => {
     if (!validateToken()) return;
@@ -169,7 +172,7 @@ export default function Home() {
       </header>
 
       {/* Chat Area */}
-      <div className="flex-1 p-4 overflow-y-auto space-y-6">
+      <div className="flex-1 p-4 overflow-y-auto space-y-32">
         <div className="flex justify-center">
           <div className="bg-violet-200 rounded-full px-3 py-1 text-xs text-black">
             Today, {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

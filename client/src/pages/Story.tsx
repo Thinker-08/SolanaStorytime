@@ -54,7 +54,7 @@ export default function Story() {
   // Load Lottie animation
   useEffect(() => {
     fetch(
-      "https://res.cloudinary.com/dnzwzwnlg/raw/upload/v1745941973/bxzvidweal4petm3qlfs.json"
+      "https://res.cloudinary.com/dnzwzwnlg/raw/upload/v1747858693/Animation_LottieFiles_ru2knr.json"
     )
       .then((res) => res.json())
       .then(setAnimationData)

@@ -191,6 +191,14 @@ export default function Story() {
             className="w-8 h-8"
           />
         );
+      case "Use your own voice":
+        return (
+          <img
+            src="https://res.cloudinary.com/dnzwzwnlg/image/upload/v1747860499/Voice_Message_Icon_g7tgbr.png"
+            alt="Use your own voice"
+            className="w-8 h-8"
+          />
+        );
       default:
         return null;
     }
@@ -227,7 +235,7 @@ export default function Story() {
               </h2>
             )}
             <div className="grid gap-2 grid-cols-2 sm:grid-cols-2 md:grid-cols-3">
-              {["Image", "Video", "Coloring Paper", "Mint to NFT"].map(
+              {["Image", "Video", "Coloring Paper", "Mint to NFT", "Use your own voice"].map(
                 (label) => (
                   <button
                     key={label}

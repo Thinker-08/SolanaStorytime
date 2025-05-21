@@ -189,6 +189,14 @@ export default function Story() {
             className="w-8 h-8"
           />
         );
+      case "Use your own voice":
+        return (
+          <img
+            src="https://res.cloudinary.com/dnzwzwnlg/image/upload/v1747860499/Voice_Message_Icon_g7tgbr.png"
+            alt="Use your own voice"
+            className="w-8 h-8"
+          />
+        );
       default:
         return null;
     }
@@ -257,6 +265,7 @@ export default function Story() {
                 { label: 'Video', key: 'video_url', type: 'video' },
                 { label: 'Coloring Paper', key: 'coloring_paper_url', type: 'image' },
                 { label: 'Mint to NFT', key: 'nft_url', type: 'image' },
+                { label: 'Use your own voice', key: 'voice_url', type: 'video' },
               ].map(({ label, key, type }) => (
                 <button
                   key={label}

@@ -41,7 +41,7 @@ const ChatHistory = ({ messages, isLoading }: ChatHistoryProps) => {
               </Avatar>
             <div className="ml-3 bg-white rounded-lg rounded-tl-none p-3 max-w-[85%]">
             <p className="text-black font-medium font-nunito">
-              Hello! I'm SoulStories, a storytelling bot for children ages 5-10. 
+              Hello! I'm polarismom, a storytelling bot for children ages 5-10. 
               I can create fun adventures that teach Solana blockchain concepts through magical tales! 
               What kind of story would you like for your child today?
             </p>

@@ -175,7 +175,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await storage.saveMessage({
             role: "assistant",
             content:
-              "Hello! I'm SoulStories, a storytelling bot for children ages 5-10. I can create fun adventures that teach Solana blockchain concepts through magical tales! What kind of story would you like for your child today?",
+              "Hello! I'm polarismom, a storytelling bot for children ages 5-10. I can create fun adventures that teach Solana blockchain concepts through magical tales! What kind of story would you like for your child today?",
             sessionId: sessionId as string,
             userId,
           });

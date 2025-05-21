@@ -106,6 +106,8 @@ export default function Story() {
   const [selectedFeedbackCode, setSelectedFeedbackCode] = useState<
     number | null
   >(null);
+  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
+  const [mediaType, setMediaType] = useState<string | null>(null);
 
   useEffect(() => {
     if (!storyId) return;
@@ -192,6 +194,23 @@ export default function Story() {
     }
   };
 
+    const renderMedia = () => {
+    if (!mediaUrl) return null;
+    if (mediaType === 'image') {
+      return <img src={mediaUrl} alt="story media" className="max-w-full mx-auto rounded-lg shadow-lg" />;
+    }
+    if (mediaType === 'video') {
+      return <video src={mediaUrl} controls className="max-w-full mx-auto rounded-lg shadow-lg" />;
+    }
+    if (mediaType === 'pdf') {
+      return <iframe src={mediaUrl} className="w-full h-96" title="Coloring Paper PDF" />;
+    }
+    if (mediaType === 'nft') {
+      return <img src={mediaUrl} alt="Minted NFT" className="max-w-full mx-auto rounded-lg shadow-lg" />;
+    }
+    return null;
+  };
+
   return (
     <div className="flex flex-col h-full bg-violet-100 text-white">
       <header className="p-4 flex items-center justify-between bg-white">
@@ -233,26 +252,33 @@ export default function Story() {
               {story.title}
             </h2>
             <div className="grid gap-2 grid-cols-2 sm:grid-cols-2 md:grid-cols-3">
-              {["Image", "Video", "Coloring Paper", "Mint to NFT"].map(
-                (label) => (
-                  <button
-                    key={label}
-                    onClick={() =>
-                      toast({
-                        title: `${label} feature`,
-                        description: "This feature is currently in works!",
-                        variant: "default",
-                      })
+              {[
+                { label: 'Image', key: 'image_url', type: 'image' },
+                { label: 'Video', key: 'video_url', type: 'video' },
+                { label: 'Coloring Paper', key: 'coloring_paper_url', type: 'image' },
+                { label: 'Mint to NFT', key: 'nft_url', type: 'image' },
+              ].map(({ label, key, type }) => (
+                <button
+                  key={label}
+                  onClick={() => {
+                    const url = (story as any)[key] as string | undefined;
+                    if (url) {
+                      setMediaUrl(url);
+                      setMediaType(type as any);
+                    } else {
+                      toast({ title: `${label} feature`, description: "This feature is currently in works!", variant: "default" });
                     }
-                    className="flex items-center justify-center gap-2 py-3 bg-violet-400 hover:bg-violet-500 text-white font-bold rounded-lg shadow"
-                  >
-                    { getImage(label) }
-                    {label}
-                  </button>
-                )
-              )}
+                  }}
+                  className="flex items-center justify-center gap-2 py-3 bg-violet-400 hover:bg-violet-500 text-white font-bold rounded-lg shadow"
+                >
+                  { getImage(label) }
+                  {label}
+                </button>
+              ))}
               <TextToSpeech2 text={story.description} isVisible={true} />
             </div>
+             {/* Display selected media */}
+            {renderMedia()}
             <div className="bg-white p-4 rounded-2xl shadow-md text-lg whitespace-pre-wrap text-black">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {story.description}

@@ -162,9 +162,12 @@ async createUser(user: {
     return result[0]?.total || 0;
   }
   
-  async getAllLibraryStoriesForUser(userId: number): Promise<[]> {
-    return Stories.find({ userId: { $in: [userId, 1] } }).lean<[]>().exec();
-  }
+async getAllLibraryStoriesForUser(userId: number): Promise<[]> {
+  return Stories.find({ userId: { $in: [userId, 1] } })
+    .sort({ createdAt: -1 })
+    .lean<[]>()
+    .exec();
+}
 
   async getUserGenerateStoriesCount(userId: number): Promise<number> {
     return Stories.countDocuments({ userId: { $in: [userId] } }).exec();

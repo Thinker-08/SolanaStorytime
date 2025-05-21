@@ -11,6 +11,9 @@ import { useSession } from "../context/SessionContext";
 import { ArrowLeft, Plus } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "../context/AuthContext";
+import {  Heart } from "lucide-react";
+
+const WALLET_ID = "DHMFYHv4Mtdv6VnGEqvQRTWWb7PDPWNSm7dRED7pLnX9";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -60,6 +63,25 @@ export default function Home() {
       localStorage.removeItem("authToken");
       window.location.href = "/";
       return false;
+    }
+  };
+
+
+    const handleDonateClick = async () => {
+    try {
+      await navigator.clipboard.writeText(WALLET_ID);
+      toast({
+        title: "Wallet ID Copied",
+        description: "Please donate to support the project!",
+        variant: "default",
+      });
+    } catch (err) {
+      console.error("Failed to copy wallet ID", err);
+      toast({
+        title: "Error",
+        description: "Please donate to support the project!",
+        variant: "default",
+      });
     }
   };
 
@@ -144,6 +166,13 @@ export default function Home() {
         </button>
         <h1 className="text-xl font-extrabold text-black">Story Assistant</h1>
         <div className="flex items-center space-x-3">
+          <button
+            onClick={handleDonateClick}
+            className="flex items-center justify-center w-8 h-8 rounded-full bg-white text-red-500 shadow-md hover:bg-red-100 transition"
+            title="Copy wallet ID"
+          >
+            <Heart className="h-5 w-5" />
+          </button>
           <button
             onClick={() => setIsTaskPaneOpen(true)}
             className="p-2 rounded-full bg-violet-100 shadow-md"

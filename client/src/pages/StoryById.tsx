@@ -9,8 +9,9 @@ import remarkGfm from "remark-gfm";
 import { useLocation } from "wouter";
 import { jwtDecode } from "jwt-decode";
 import TextToSpeech2 from "../components/TextToSpeech2";
-import { Star } from "lucide-react";
-import { c } from "node_modules/vite/dist/node/types.d-aGj9QkWt";
+import { Star, Heart } from "lucide-react";
+
+const WALLET_ID = "DHMFYHv4Mtdv6VnGEqvQRTWWb7PDPWNSm7dRED7pLnX9";
 
 type TokenPayload = {
   id: number;
@@ -87,6 +88,24 @@ export default function Story() {
     localStorage.removeItem("authToken");
     setToken("");
     window.location.href = "/";
+  };
+
+    const handleDonateClick = async () => {
+    try {
+      await navigator.clipboard.writeText(WALLET_ID);
+      toast({
+        title: "Wallet ID Copied",
+        description: "Please donate to support the project!",
+        variant: "default",
+      });
+    } catch (err) {
+      console.error("Failed to copy wallet ID", err);
+      toast({
+        title: "Error",
+        description: "Please donate to support the project!",
+        variant: "default",
+      });
+    }
   };
 
   const [storyId, setStoryId] = useState<string | null>(null);
@@ -231,7 +250,14 @@ export default function Story() {
         <h1 className="text-xl font-extrabold flex-1 text-center text-black">
           Your Story
         </h1>
-        <div ref={dropdownRef} className="relative">
+        <div ref={dropdownRef} className="relative flex gap-2">
+                    <button
+            onClick={handleDonateClick}
+            className="flex items-center justify-center w-8 h-8 rounded-full bg-white text-red-500 shadow-md hover:bg-red-100 transition"
+            title="Copy wallet ID"
+          >
+            <Heart className="h-5 w-5" />
+          </button>
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
             className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center text-violet-400 font-semibold shadow-md"

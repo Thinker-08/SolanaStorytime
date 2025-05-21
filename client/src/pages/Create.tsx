@@ -1,11 +1,21 @@
 // src/pages/Create.tsx
 import React, { useState, useEffect, useRef } from "react";
-import { ArrowLeft, BookOpen, Plus, Edit2, ArrowRight } from "lucide-react";
+import {
+  ArrowLeft,
+  BookOpen,
+  Plus,
+  Edit2,
+  ArrowRight,
+  Heart,
+} from "lucide-react";
 import { usePrompt } from "../context/PromptContext";
 import { useLocation } from "wouter";
 import { useAuth } from "../context/AuthContext";
 import { jwtDecode } from "jwt-decode";
 import { useStorySession } from "../context/StorySessionContext";
+import { useToast } from "../hooks/use-toast";
+
+const WALLET_ID = "DHMFYHv4Mtdv6VnGEqvQRTWWb7PDPWNSm7dRED7pLnX9";
 
 // Option type
 type Option = { id: string; name: string };
@@ -37,7 +47,7 @@ export default function CreateStoryScreen() {
   const [newParentInterest, setNewParentInterest] = useState("");
   const [newChildInterest, setNewChildInterest] = useState("");
   const [newTheme, setNewTheme] = useState("");
-
+  const { toast } = useToast();
   // State for nicknames and selections
   const [childNickname, setChildNickname] = useState("");
   const [parentNickname, setParentNickname] = useState("");
@@ -72,6 +82,24 @@ export default function CreateStoryScreen() {
     }
   };
 
+  const handleDonateClick = async () => {
+    try {
+      await navigator.clipboard.writeText(WALLET_ID);
+      toast({
+        title: "Wallet ID Copied",
+        description: "Please donate to support the project!",
+        variant: "default",
+      });
+    } catch (err) {
+      console.error("Failed to copy wallet ID", err);
+      toast({
+        title: "Error",
+        description: "Please donate to support the project!",
+        variant: "default",
+      });
+    }
+  };
+
   useEffect(() => {
     if (validateToken()) {
       fetchUserPreferences();
@@ -88,7 +116,10 @@ export default function CreateStoryScreen() {
   // Click outside to close dropdown
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
         setDropdownOpen(false);
       }
     };
@@ -122,14 +153,17 @@ export default function CreateStoryScreen() {
   // Add new preference helper
   const addPreference = async (type: string, name: string) => {
     try {
-      await fetch("https://solana-storytime.vercel.app/api/add-user-preference", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ type, name }),
-      });
+      await fetch(
+        "https://solana-storytime.vercel.app/api/add-user-preference",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ type, name }),
+        }
+      );
       await fetchUserPreferences();
     } catch (err) {
       console.error(`Failed to add ${type}:`, err);
@@ -141,46 +175,55 @@ export default function CreateStoryScreen() {
     const newName = prompt("Enter new name:");
     if (!newName) return;
     try {
-      await fetch("https://solana-storytime.vercel.app/api/update-user-preferences", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ type, id, name: newName }),
-      });
+      await fetch(
+        "https://solana-storytime.vercel.app/api/update-user-preferences",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ type, id, name: newName }),
+        }
+      );
       await fetchUserPreferences();
     } catch (err) {
       console.error(`Failed to update ${type}:`, err);
     }
   };
 
-  const saveNames = async() => {
+  const saveNames = async () => {
     try {
-      await fetch("https://solana-storytime.vercel.app/api/update-user-preferences", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ type: "parents_name", name: parentNickname }),
-      })
+      await fetch(
+        "https://solana-storytime.vercel.app/api/update-user-preferences",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ type: "parents_name", name: parentNickname }),
+        }
+      );
     } catch (err) {
       console.error(`Failed to save parent nickname:`, err);
     }
     try {
-      await fetch("https://solana-storytime.vercel.app/api/update-user-preferences", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ type: "children_name", name: childNickname }),
-      })
+      await fetch(
+        "https://solana-storytime.vercel.app/api/update-user-preferences",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ type: "children_name", name: childNickname }),
+        }
+      );
     } catch (err) {
       console.error(`Failed to save child nickname:`, err);
     }
-  }
+  };
 
   const canGenerate = Boolean(
     childNickname && parentNickname && parentInterest && childInterest && theme
@@ -190,8 +233,7 @@ export default function CreateStoryScreen() {
     parentInterests.find((opt) => opt.id === parentInterest)?.name || "";
   const childInterestName =
     childInterests.find((opt) => opt.id === childInterest)?.name || "";
-  const themeName =
-    themes.find((opt) => opt.id === theme)?.name || "";
+  const themeName = themes.find((opt) => opt.id === theme)?.name || "";
 
   return (
     <div className="flex flex-col h-screen bg-violet-100 text-white">
@@ -199,8 +241,17 @@ export default function CreateStoryScreen() {
         <button onClick={() => navigate("/home")} className="text-indigo-300">
           <ArrowLeft className="h-6 w-6 text-violet-400" />
         </button>
-        <h1 className="text-xl font-bold text-black">Create your own Soul Story</h1>
-        <div ref={dropdownRef} className="relative">
+        <h1 className="text-xl font-bold text-black">
+          Create your own Soul Story
+        </h1>
+        <div ref={dropdownRef} className="relative flex items-center space-x-3">
+                    <button
+            onClick={handleDonateClick}
+            className="flex items-center justify-center w-8 h-8 rounded-full bg-white text-red-500 shadow-md hover:bg-red-100 transition"
+            title="Copy wallet ID"
+          >
+            <Heart className="h-5 w-5" />
+          </button>
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
             className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center text-indigo-800 font-semibold shadow-md"
@@ -252,7 +303,9 @@ export default function CreateStoryScreen() {
         {/* Parent Interests */}
         <div>
           <label className="block text-black mb-2 font-medium">
-            {parentNickname ? `${parentNickname}'s Interest` : "Parent's Interest"}
+            {parentNickname
+              ? `${parentNickname}'s Interest`
+              : "Parent's Interest"}
           </label>
           <div className="bg-white rounded-lg p-2 shadow-md space-y-2">
             <div className="flex justify-end px-6">
@@ -260,7 +313,7 @@ export default function CreateStoryScreen() {
                 onClick={() => setEditMode(!editMode)}
                 className="text-sm text-indigo-800 underline"
               >
-                {editMode ? 'Done' : 'Edit/Add'}
+                {editMode ? "Done" : "Edit/Add"}
               </button>
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -270,8 +323,8 @@ export default function CreateStoryScreen() {
                     onClick={() => setParentInterest(opt.id)}
                     className={`w-full p-3 rounded-lg text-left text-sm ${
                       parentInterest === opt.id
-                        ? 'bg-violet-400 text-white shadow-md'
-                        : 'bg-purple-50 text-black'
+                        ? "bg-violet-400 text-white shadow-md"
+                        : "bg-purple-50 text-black"
                     }`}
                   >
                     {opt.name}
@@ -280,7 +333,9 @@ export default function CreateStoryScreen() {
                     <Edit2
                       className="absolute top-1 right-1 cursor-pointer text-violet-400"
                       size={16}
-                      onClick={() => updatePreference('parents_interest', opt.id)}
+                      onClick={() =>
+                        updatePreference("parents_interest", opt.id)
+                      }
                     />
                   )}
                 </div>
@@ -300,8 +355,8 @@ export default function CreateStoryScreen() {
                   size={18}
                   onClick={() => {
                     if (!newParentInterest.trim()) return;
-                    addPreference('parents_interest', newParentInterest.trim());
-                    setNewParentInterest('');
+                    addPreference("parents_interest", newParentInterest.trim());
+                    setNewParentInterest("");
                   }}
                 />
               </div>
@@ -320,7 +375,7 @@ export default function CreateStoryScreen() {
                 onClick={() => setEditMode(!editMode)}
                 className="text-sm text-indigo-800 underline"
               >
-                {editMode ? 'Done' : 'Edit/Add'}
+                {editMode ? "Done" : "Edit/Add"}
               </button>
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -330,8 +385,8 @@ export default function CreateStoryScreen() {
                     onClick={() => setChildInterest(opt.id)}
                     className={`w-full p-3 rounded-lg text-left text-sm ${
                       childInterest === opt.id
-                        ? 'bg-violet-400 text-white shadow-md'
-                        : 'bg-purple-50 text-black'
+                        ? "bg-violet-400 text-white shadow-md"
+                        : "bg-purple-50 text-black"
                     }`}
                   >
                     {opt.name}
@@ -340,7 +395,9 @@ export default function CreateStoryScreen() {
                     <Edit2
                       className="absolute top-1 right-1 cursor-pointer text-indigo-600"
                       size={16}
-                      onClick={() => updatePreference('children_interest', opt.id)}
+                      onClick={() =>
+                        updatePreference("children_interest", opt.id)
+                      }
                     />
                   )}
                 </div>
@@ -360,8 +417,8 @@ export default function CreateStoryScreen() {
                   size={18}
                   onClick={() => {
                     if (!newChildInterest.trim()) return;
-                    addPreference('children_interest', newChildInterest.trim());
-                    setNewChildInterest('');
+                    addPreference("children_interest", newChildInterest.trim());
+                    setNewChildInterest("");
                   }}
                 />
               </div>
@@ -379,7 +436,7 @@ export default function CreateStoryScreen() {
                 onClick={() => setEditMode(!editMode)}
                 className="text-sm text-indigo-800 underline"
               >
-                {editMode ? 'Done' : 'Edit/Add'}
+                {editMode ? "Done" : "Edit/Add"}
               </button>
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -389,8 +446,8 @@ export default function CreateStoryScreen() {
                     onClick={() => setTheme(opt.id)}
                     className={`w-full p-3 rounded-lg text-left text-sm ${
                       theme === opt.id
-                        ? 'bg-violet-400 text-white shadow-md'
-                        : 'bg-purple-50 text-black'
+                        ? "bg-violet-400 text-white shadow-md"
+                        : "bg-purple-50 text-black"
                     }`}
                   >
                     {opt.name}
@@ -399,7 +456,7 @@ export default function CreateStoryScreen() {
                     <Edit2
                       className="absolute top-1 right-1 cursor-pointer text-indigo-600"
                       size={16}
-                      onClick={() => updatePreference('themes', opt.id)}
+                      onClick={() => updatePreference("themes", opt.id)}
                     />
                   )}
                 </div>
@@ -419,8 +476,8 @@ export default function CreateStoryScreen() {
                   size={18}
                   onClick={() => {
                     if (!newTheme.trim()) return;
-                    addPreference('themes', newTheme.trim());
-                    setNewTheme('');
+                    addPreference("themes", newTheme.trim());
+                    setNewTheme("");
                   }}
                 />
               </div>

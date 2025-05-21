@@ -10,10 +10,12 @@ import {
   Star,
   Book,
   Award,
+  Heart,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useLocation } from "wouter";
 import { jwtDecode } from "jwt-decode";
+import { useToast } from "../hooks/use-toast";
 
 type TokenPayload = {
   id: number;
@@ -21,6 +23,8 @@ type TokenPayload = {
   exp: number;
   username: string;
 };
+
+const WALLET_ID = "DHMFYHv4Mtdv6VnGEqvQRTWWb7PDPWNSm7dRED7pLnX9";
 
 const getInitials = (name: string) =>
   name
@@ -43,7 +47,7 @@ const HomePage = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [storyCount, setStoryCount] = useState<number | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
+  const { toast } = useToast();
   const validateToken = () => {
     const authToken = localStorage.getItem("authToken");
     if (!authToken) {
@@ -120,6 +124,24 @@ const HomePage = () => {
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
 
+    const handleDonateClick = async () => {
+    try {
+      await navigator.clipboard.writeText(WALLET_ID);
+      toast({
+        title: "Wallet ID Copied",
+        description: "Please donate to support the project!",
+        variant: "default",
+      });
+    } catch (err) {
+      console.error("Failed to copy wallet ID", err);
+      toast({
+        title: "Error",
+        description: "Please donate to support the project!",
+        variant: "default",
+      });
+    }
+  };
+
   const rank = storyCount !== null ? getRankFromCount(storyCount) : null;
 
   return (
@@ -132,50 +154,55 @@ const HomePage = () => {
             polarismom
           </h1>
           {rank && (
-  <div className="relative group ml-3">
-    <span
-      className={`
-        px-2 py-1 text-xs rounded-full font-bold shadow flex items-center gap-1 bg-white
-        ${rank === "Gold" ? "text-yellow-500" : ""}
-        ${rank === "Silver" ? "text-gray-400" : ""}
-        ${rank === "Bronze" ? "text-yellow-800" : ""}
-      `}
-    >
-      <Award
-        className={`
-          h-4 w-4
-          ${rank === "Gold" ? "text-yellow-500" : ""}
-          ${rank === "Silver" ? "text-gray-400" : ""}
-          ${rank === "Bronze" ? "text-yellow-800" : ""}
-        `}
-      />
-      {rank}
-    </span>
+            <div className="relative group ml-3">
+              <span
+                className={`
+                  px-2 py-1 text-xs rounded-full font-bold shadow flex items-center gap-1 bg-white
+                  ${rank === "Gold" ? "text-yellow-500" : ""}
+                  ${rank === "Silver" ? "text-gray-400" : ""}
+                  ${rank === "Bronze" ? "text-yellow-800" : ""}
+                `}
+              >
+                <Award
+                  className={`
+                    h-4 w-4
+                    ${rank === "Gold" ? "text-yellow-500" : ""}
+                    ${rank === "Silver" ? "text-gray-400" : ""}
+                    ${rank === "Bronze" ? "text-yellow-800" : ""}
+                  `}
+                />
+                {rank}
+              </span>
 
-    <div
-  className="
-    absolute top-full left-1/2 -translate-x-1/2 mt-2
-    bg-black text-white text-xs rounded-md px-3 py-2 shadow-lg
-    hidden group-hover:block z-50
-    max-w-[12rem]
-    whitespace-normal
-    break-words
-  "
->
-  <p>
-    Achievement unlocked!
-    {rank === "Gold" && " You’ve created 10 or more stories."}
-    {rank === "Silver" && " You’ve created 5 or more stories."}
-    {rank === "Bronze" && " Keep going! 5 stories unlock Silver."}
-  </p>
-</div>
-
-  </div>
-)}
-
-
+              <div
+                className="
+                  absolute top-full left-1/2 -translate-x-1/2 mt-2
+                  bg-black text-white text-xs rounded-md px-3 py-2 shadow-lg
+                  hidden group-hover:block z-50
+                  max-w-[12rem]
+                  whitespace-normal
+                  break-words
+                "
+              >
+                <p>
+                  Achievement unlocked!
+                  {rank === "Gold" && " You’ve created 10 or more stories."}
+                  {rank === "Silver" && " You’ve created 5 or more stories."}
+                  {rank === "Bronze" && " Keep going! 5 stories unlock Silver."}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-3">
+          {/* Donate Heart Icon */}
+          <button
+            onClick={handleDonateClick}
+            className="flex items-center justify-center w-8 h-8 rounded-full bg-white text-red-500 shadow-md hover:bg-red-100 transition"
+            title="Copy wallet ID"
+          >
+            <Heart className="h-5 w-5" />
+          </button>
           <div ref={dropdownRef} className="relative">
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -258,15 +285,26 @@ const HomePage = () => {
 
       {/* Bottom Navigation */}
       <nav className="grid grid-cols-3 bg-white">
-        <button className="p-4 flex flex-col items-center justify-center text-violet-400" onClick={() => navigate("/home")}>
+        <button
+          className="p-4 flex flex-col items-center justify-center text-violet-400"
+          onClick={() => navigate("/home")}
+        >
           <Home size={20} className="text-violet-800" />
           <span className="text-xs mt-1 text-violet-800">Home</span>
         </button>
-        <button className="p-4 flex flex-col items-center justify-center text-indigo-300" onClick={() => navigate(`/library?type=${encodeURIComponent('Saved Stories')}`)}>
+        <button
+          className="p-4 flex flex-col items-center justify-center text-indigo-300"
+          onClick={() =>
+            navigate(`/library?type=${encodeURIComponent("Saved Stories")}`)
+          }
+        >
           <Star size={20} className="text-violet-800" />
           <span className="text-xs mt-1 text-violet-800">Saved Stories</span>
         </button>
-        <button className="p-4 flex flex-col items-center justify-center text-indigo-300" onClick={() => navigate("/library")}>
+        <button
+          className="p-4 flex flex-col items-center justify-center text-indigo-300"
+          onClick={() => navigate("/library")}
+        >
           <Book size={20} className="text-violet-800" />
           <span className="text-xs mt-1 text-violet-800">Library</span>
         </button>

@@ -1,10 +1,13 @@
 // src/pages/LibraryScreen.tsx
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { ArrowRight, Book } from "lucide-react";
+import { ArrowRight, Book, Heart } from "lucide-react";
 import { apiRequest } from "../lib/queryClient";
 import { useAuth } from "../context/AuthContext";
 import { useLocation } from "wouter";
 import { jwtDecode } from "jwt-decode";
+import { useToast } from "../hooks/use-toast";
+
+const WALLET_ID = "DHMFYHv4Mtdv6VnGEqvQRTWWb7PDPWNSm7dRED7pLnX9";
 
 type TokenPayload = {
   id: number;
@@ -50,7 +53,7 @@ export default function LibraryScreen() {
   const [userName, setUserName] = useState<string>("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
+  const { toast } = useToast();
   // auth guard and extract username
   const validateToken = () => {
     const authToken = localStorage.getItem("authToken");
@@ -72,6 +75,24 @@ export default function LibraryScreen() {
       localStorage.removeItem("authToken");
       window.location.href = "/";
       return false;
+    }
+  };
+
+      const handleDonateClick = async () => {
+    try {
+      await navigator.clipboard.writeText(WALLET_ID);
+      toast({
+        title: "Wallet ID Copied",
+        description: "Please donate to support the project!",
+        variant: "default",
+      });
+    } catch (err) {
+      console.error("Failed to copy wallet ID", err);
+      toast({
+        title: "Error",
+        description: "Please donate to support the project!",
+        variant: "default",
+      });
     }
   };
 
@@ -144,6 +165,13 @@ export default function LibraryScreen() {
         </button>
         <h1 className="text-xl font-extrabold text-black">Story Library</h1>
         <div className="flex items-center gap-3">
+                    <button
+            onClick={handleDonateClick}
+            className="flex items-center justify-center w-8 h-8 rounded-full bg-white text-red-500 shadow-md hover:bg-red-100 transition"
+            title="Copy wallet ID"
+          >
+            <Heart className="h-5 w-5" />
+          </button>
           <div ref={dropdownRef} className="relative">
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}

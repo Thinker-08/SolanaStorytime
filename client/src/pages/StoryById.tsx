@@ -307,7 +307,6 @@ export default function Story() {
                   className="flex items-center justify-center gap-2 py-3 bg-violet-400 hover:bg-violet-500 text-white font-bold rounded-lg shadow"
                 >
                   { getImage(label) }
-                  {label}
                 </button>
               ))}
               <TextToSpeech2 text={story.description} isVisible={true} />

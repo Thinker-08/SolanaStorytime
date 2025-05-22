@@ -242,7 +242,7 @@ export default function CreateStoryScreen() {
           <ArrowLeft className="h-6 w-6 text-violet-400" />
         </button>
         <h1 className="text-xl font-bold text-black">
-          Create your own Soul Story
+          Create your own Story
         </h1>
         <div ref={dropdownRef} className="relative flex items-center space-x-3">
                     <button

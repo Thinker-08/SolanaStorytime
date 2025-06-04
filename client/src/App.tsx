@@ -33,7 +33,7 @@ function Router() {
 
 function App() {
   return (
-    <GoogleOAuthProvider clientId="507853580015-r8kq3f6b3gv88cafi26tvtmmti0rfhe6.apps.googleusercontent.com">
+    <GoogleOAuthProvider clientId="102903288376-hfgbm13oa510h17houekqvr13e6glk0h.apps.googleusercontent.com">
     <SessionProvider>
       <StorySessionProvider>
       <AuthProvider>

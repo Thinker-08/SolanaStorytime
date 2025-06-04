@@ -34,27 +34,19 @@ const userSchema = new mongoose.Schema({
       parents_interest: [
         {
           id: 1,
-          name: "DeFi"
+          name: "Economics"
         },
         {
           id: 2,
-          name: "NFTs"
+          name: "Rocket"
         },
         {
           id: 3,
-          name: "Tokenomics"
+          name: "Football"
         },
         {
           id: 4,
-          name: "Rug Pullers"
-        },
-        {
-          id: 5,
           name: "Blockchain"
-        },
-        {
-          id: 6,
-          name: "Smart Contracts"
         }
       ],
       children_interest: [

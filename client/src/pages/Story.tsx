@@ -54,7 +54,7 @@ export default function Story() {
   // Load Lottie animation
   useEffect(() => {
     fetch(
-      "https://res.cloudinary.com/dnzwzwnlg/raw/upload/v1747858693/Animation_LottieFiles_ru2knr.json"
+      "https://res.cloudinary.com/dvnjvvuig/raw/upload/v1749042287/LottieFiles_Animation_guzybo.json"
     )
       .then((res) => res.json())
       .then(setAnimationData)
@@ -170,15 +170,15 @@ export default function Story() {
     switch (label) {
       case "Image":
         return <img
-        src="https://res.cloudinary.com/dnzwzwnlg/image/upload/v1747766991/Image_from_Flaticon_uhqvql.png"
+        src="https://res.cloudinary.com/dvnjvvuig/image/upload/v1749042287/Image_from_Flaticon_1_nyhli8.png"
         alt="Image"
         className="w-8 h-8" />;
       case "Video":
-        return <img src="https://res.cloudinary.com/dnzwzwnlg/image/upload/v1747766992/Video_icon_gjea4f.png" alt="Video" className="w-8 h-8" />;
+        return <img src="https://res.cloudinary.com/dvnjvvuig/image/upload/v1749042287/Video_Icon_from_Cloudinary_z3i203.png" alt="Video" className="w-8 h-8" />;
       case "Coloring Paper":
         return (
           <img
-            src="https://res.cloudinary.com/dnzwzwnlg/image/upload/v1747766992/Colored_Pencils_Coloring_Paper_hn3a6f.png"
+            src="https://res.cloudinary.com/dvnjvvuig/image/upload/v1749042285/Colored_Pencils_Coloring_Paper_1_mufa1g.png"
             alt="Coloring Paper"
             className="w-8 h-8"
           />
@@ -186,7 +186,7 @@ export default function Story() {
       case "Mint to NFT":
         return (
           <img
-            src="https://res.cloudinary.com/dnzwzwnlg/image/upload/v1747766992/Nft_Icon_k7gpn4.png"
+            src="https://res.cloudinary.com/dvnjvvuig/image/upload/v1749042286/NFT_Icon_1_klhn5m.png"
             alt="Mint to NFT"
             className="w-8 h-8"
           />
@@ -194,7 +194,7 @@ export default function Story() {
       case "Use your own voice":
         return (
           <img
-            src="https://res.cloudinary.com/dnzwzwnlg/image/upload/v1747860499/Voice_Message_Icon_g7tgbr.png"
+            src="https://res.cloudinary.com/dvnjvvuig/image/upload/v1749042287/Voice_Message_Icon_1_uv2po2.png"
             alt="Use your own voice"
             className="w-8 h-8"
           />
